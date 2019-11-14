@@ -7,13 +7,25 @@ import os
 app = Flask(__name__)
 DATA_NODE = "http://localhost:2020/"
 
+"""
+Master Node Api:
+get /ping get alive
+get /file?name return file location, and replicas
+put /file?name return file location to put file
+delete /filesystem remove all files from all datanodes
+delete /file?name remove file 
+post /datanode? ip, port - add new data node to list
+post /fileCopy?name,destination - copy file to destination
+
+Background process:
+replication check
+"""
 
 @app.route("/ping")
 def ping():
     return "Hello, Master Node is Alive!"
 
 
-# parameters passed via url - /fileChunks?file=kek
 @app.route("/fileLocations")
 def file_locations():
     locations = [
