@@ -1,6 +1,10 @@
 from flask import Flask
+import os
 
 app = Flask(__name__)
+
+PORT = 2020
+FILE_STORE = "./data"
 
 """
 Data Node Api:
@@ -10,6 +14,9 @@ get /file?name return file content
 put /file?name create new file if not exists and put there
 post /filesystem remove all files from all 
 delete /file?name remove file 
+get /directory - get all files in directory
+post /directory - create new directory
+
 
 delete /fileSystem - remove all files
 post /fileCopy?file,destination - init connection with other data node and send file there 
@@ -17,10 +24,18 @@ post /fileCopy?file,destination - init connection with other data node and send 
 
 """
 
+
 @app.route("/ping")
-def hello():
+def ping():
     return "Hello, Data Node is Alive!"
 
 
+def init_node():
+    if not os.path.exists(FILE_STORE):
+        os.mkdir(FILE_STORE)
+
+    app.run(host='0.0.0.0', port=PORT)
+
+
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=2020)
+    init_node()

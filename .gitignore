@@ -7,3 +7,4 @@ venv/
 cmake-build-*/
 out/
 .idea_modules/
+__pycache__/
