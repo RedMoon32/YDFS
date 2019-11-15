@@ -65,3 +65,25 @@ def test_file_delete(client):
 
     assert client.delete("/file?filename=a.txt").status_code == 200
     assert not os.path.exists(fpath)
+
+
+def test_mkdir(client):
+    init_storage_test()
+
+    resp = client.put("/directory?name=a")
+
+    assert resp.status_code == 201
+    assert os.path.exists(os.path.join(FILE_STORE, "a"))
+
+    resp = client.put("/directory?name=a/b/c")
+    assert resp.status_code == 400
+
+
+def test_delete_dir(client):
+    init_storage_test()
+    dirname = os.path.join(FILE_STORE, "a")
+    os.mkdir(dirname)
+
+    resp = client.delete("/directory?name=a")
+    assert resp.status_code == 200
+    assert not os.path.exists(dirname)
