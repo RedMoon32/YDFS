@@ -46,7 +46,9 @@ def file():
         return jsonify(choice(data_nodes).serialize())
     elif request.method == "PUT":
         destination = request.args["destination"]
-        if fs.dir_exists(os.path.dirname(destination)):
+        if fs.dir_exists(destination):
+            pass
+
 
 
 
