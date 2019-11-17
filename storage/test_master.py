@@ -77,5 +77,5 @@ def test_file_move(client):
     storage.master_node.fs._dirs.append("/c")
     storage.master_node.fs.add_file("/c/a.txt")
 
-    resp = client.put("/file?filename=/b/a.txt&destination=/c/")
+    resp = client.put("/file?filename=/b/a.txt&destination=/c")
     assert resp.status_code == 404
