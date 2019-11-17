@@ -87,3 +87,6 @@ def test_delete_dir(client):
     resp = client.delete("/directory?name=a")
     assert resp.status_code == 200
     assert not os.path.exists(dirname)
+
+def test_filesystem(client):
+    pass

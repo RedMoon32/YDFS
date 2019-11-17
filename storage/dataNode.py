@@ -1,4 +1,5 @@
-from flask import Flask, request, Response
+import requests
+from flask import Flask, request, Response, jsonify
 import os
 from flask_api import status
 
@@ -43,7 +44,7 @@ def filesystem():
 
         files = recursive_file_get(FILE_STORE)
         # for now - just files in current directory
-        return os.listdir(FILE_STORE)
+        return jsonify(os.listdir(FILE_STORE))
 
 
 @app.route("/file", methods=["GET", "PUT", "DELETE"])
@@ -121,6 +122,8 @@ def dir():
 def init_node():
     if not os.path.exists(FILE_STORE):
         os.mkdir(FILE_STORE)
+    #run master node first
+    requests.post("http://localhost:3030/datanode?ip=http://127.0.0.1&port=2020")
     app.run(host='0.0.0.0', port=PORT)
 
 

@@ -77,5 +77,23 @@ def file():
         return jsonify(choice(data_nodes).serialize())
 
 
+def ping_data_nodes():
+    time.sleep(5)
+    while True:
+
+        for d in data_nodes:
+            node_address = f"{d.ip}:{d.port}"
+            print(f"Synchronisation with datanode {node_address}")
+            resp = requests.get(os.path.join(node_address, "ping"))
+            if resp.status_code == 200:
+                print(f"Success - datanode {node_address} is alive")
+            else:
+                print(f"Datanode {node_address} synchronisation failed")
+        time.sleep(5)
+
+
 if __name__ == "__main__":
+    ping_thread = threading.Thread(target=ping_data_nodes)
+    ping_thread.start()
     app.run(host='0.0.0.0', port=3030)
+    ping_thread.join()
