@@ -49,8 +49,8 @@ def file():
 
     elif request.method == "PUT":
         destination = request.args["destination"]
-        if fs.dir_exists(destination):
-            new_file_name = os.path.join(destination, os.path.basename(filename))
+        new_file_name = os.path.join(destination, os.path.basename(filename))
+        if fs.dir_exists(destination) and not fs.file_exists(new_file_name):
             fs.rename_file(filename, new_file_name)
             return Response(status=200)
         else:
