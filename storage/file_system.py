@@ -38,8 +38,12 @@ class FileSystem:
     def get_file(self, filename) -> File:
         return self._file_mapper.get(filename, None)
 
+    def file_exists(self, filename):
+        return filename in self._file_mapper
+
     def add_directory(self, dirname) -> bool:
-        if self.get_file(dirname) is None and not self.dir_exists(dirname) and self.dir_exists(os.path.join(dirname, '..')):
+        if self.get_file(dirname) is None and not self.dir_exists(dirname) and self.dir_exists(
+                os.path.join(dirname, '..')):
             self._dirs.append(dirname)
             return True
         return False
