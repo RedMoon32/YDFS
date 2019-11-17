@@ -30,7 +30,7 @@ def datanode():
         return Response(status=400)
 
 
-@app.route("/file", methods=["POST", "GET"])
+@app.route("/file", methods=["POST", "GET", "PUT"])
 def file():
     filename = request.args["filename"]
     file: File = fs.get_file(filename)
@@ -44,6 +44,11 @@ def file():
         if not file:
             return Response("File already exists", 400)
         return jsonify(choice(data_nodes).serialize())
+    elif request.method == "PUT":
+        destination = request.args["destination"]
+        if fs.dir_exists(os.path.dirname(destination)):
+
+
 
 
 def ping_data_nodes():
