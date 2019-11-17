@@ -38,8 +38,12 @@ class FileSystem:
     def get_file(self, filename) -> File:
         return self._file_mapper.get(filename, None)
 
+    def file_exists(self, filename):
+        return filename in self._file_mapper
+
     def add_directory(self, dirname) -> bool:
-        if not self.dir_exists(dirname) and self.dir_exists(os.path.join(dirname, '..')):
+        if self.get_file(dirname) is None and not self.dir_exists(dirname) and self.dir_exists(
+                os.path.join(dirname, '..')):
             self._dirs.append(dirname)
             return True
         return False
@@ -47,3 +51,10 @@ class FileSystem:
     def dir_exists(self, dirname):
         dirname = "/" if dirname == "" else dirname
         return dirname in self._dirs
+
+    def rename_file(self, file_name, new_file_name):
+        if file_name in self._file_mapper:
+            self._file_mapper[new_file_name] = self._file_mapper.pop(file_name)
+            self._file_mapper[new_file_name].name = new_file_name
+        else:
+            raise FileNotFoundError
