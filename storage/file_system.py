@@ -39,7 +39,7 @@ class FileSystem:
         return self._file_mapper.get(filename, None)
 
     def add_directory(self, dirname) -> bool:
-        if not self.dir_exists(dirname) and self.dir_exists(os.path.join(dirname, '..')):
+        if self.get_file(dirname) is None and not self.dir_exists(dirname) and self.dir_exists(os.path.join(dirname, '..')):
             self._dirs.append(dirname)
             return True
         return False
