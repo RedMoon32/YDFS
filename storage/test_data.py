@@ -62,7 +62,3 @@ def test_file_delete(client):
 
     assert client.delete("/file?filename=1").status_code == 200
     assert not os.path.exists(fpath)
-
-
-def test_filesystem(client):
-    pass

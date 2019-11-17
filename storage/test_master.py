@@ -37,6 +37,9 @@ def test_file_location_to_store(client):
     assert resp.json == {"ip": "101.101.101.101",
                          "port": 2000}
 
+    resp = client.post("/file?filename=/b/a.txt")
+    assert resp.status_code == 400
+
     clean()
 
 
