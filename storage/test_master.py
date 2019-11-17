@@ -40,6 +40,12 @@ def test_file_location_to_store(client):
     resp = client.post("/file?filename=/b/a.txt")
     assert resp.status_code == 400
 
+    storage.master_node.fs._dirs.append("/b")
+
+    resp = client.post("/file?filename=/b/a.txt")
+    assert resp.status_code == 200
+
+
     clean()
 
 
