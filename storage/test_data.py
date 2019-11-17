@@ -18,6 +18,12 @@ def init_storage_test():
     os.mkdir(FILE_STORE)
 
 
+def test_filesystem_delete(client):
+    client.delete('filesystem')
+    assert os.path.exists(FILE_STORE)
+    assert len(os.listdir(FILE_STORE)) == 0
+
+
 def test_file_get(client):
     init_storage_test()
 

@@ -79,3 +79,10 @@ def test_file_move(client):
 
     resp = client.put("/file?filename=/b/a.txt&destination=/c")
     assert resp.status_code == 404
+
+
+def test_filesystem_delete(client):
+    client.delete('filesystem')
+    assert storage.master_node.fs._id == 0
+    assert storage.master_node.fs._dirs == ['/']
+    assert storage.master_node.fs._file_mapper == {}
