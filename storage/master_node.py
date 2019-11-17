@@ -12,6 +12,30 @@ app = Flask(__name__)
 data_nodes = []
 
 fs = FileSystem()
+MAX_REQUEST_COUNT = 3
+
+
+def request_datanode(datanode, command, method):
+    node_address = f"{datanode.ip}:{datanode.port}"
+    resp = None
+    for try_counter in range(MAX_REQUEST_COUNT):
+        if method == "GET":
+            resp = requests.get(os.path.join(node_address, command))
+        elif method == "POST":
+            resp = requests.post(os.path.join(node_address, command))
+        elif method == "DELETE":
+            resp = requests.delete(os.path.join(node_address, command))
+        print(resp)
+        if resp.status_code == 200:
+            return Response(status=200)
+    # drop datanode if it does not respond
+    drop_datanode(datanode)
+    return resp
+
+
+def drop_datanode(datanode):
+    data_nodes.remove(datanode)
+    print(f"Removed not responding datanode {datanode.ip}:{datanode.port}")
 
 
 @app.route("/ping")
@@ -28,6 +52,18 @@ def datanode():
         return Response(status=201)
     else:
         return Response(status=400)
+
+
+@app.route("/filesystem", methods=["DELETE"])
+def filesystem():
+    if request.method == "DELETE":
+        fs.__init__()
+        for d in data_nodes:
+            request_datanode(d, 'filesystem', request.method)
+        if len(data_nodes) > 0:
+            return Response("Storage is initialized and ready", 200)
+        else:
+            return Response("Storage is unavailable", 400)
 
 
 @app.route("/file", methods=["POST", "GET", "PUT"])
