@@ -38,9 +38,8 @@ class FileSystem:
     def get_file(self, filename) -> File:
         return self._file_mapper.get(filename, None)
 
-
     def add_directory(self, dirname) -> bool:
-        if dirname not in self.dir_can_be_created(dirname, check_upper=True):  # and upper directory exists
+        if not self.dir_exists(dirname) and self.dir_exists(os.path.join(dirname, '..')):
             self._dirs.append(dirname)
             return True
         return False
