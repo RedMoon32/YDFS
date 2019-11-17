@@ -34,23 +34,27 @@ def datanode():
 def file():
     filename = request.args["filename"]
     file: File = fs.get_file(filename)
+
     if request.method == "GET":
         if not file:
             return Response(status=404)
         else:
             return jsonify(file.serialize())
+
     elif request.method == "POST":
         file: File = fs.add_file(filename)
         if not file:
             return Response("File already exists", 400)
         return jsonify(choice(data_nodes).serialize())
+
     elif request.method == "PUT":
         destination = request.args["destination"]
         if fs.dir_exists(destination):
-            pass
-
-
-
+            new_file_name = os.path.join(destination, os.path.basename(filename))
+            fs.rename_file(filename, new_file_name)
+            return Response(status=200)
+        else:
+            return Response("Output folder path does not exists", 404)
 
 
 def ping_data_nodes():

@@ -47,3 +47,10 @@ class FileSystem:
     def dir_exists(self, dirname):
         dirname = "/" if dirname == "" else dirname
         return dirname in self._dirs
+
+    def rename_file(self, file_name, new_file_name):
+        if file_name in self._file_mapper:
+            self._file_mapper[new_file_name] = self._file_mapper.pop(file_name)
+            self._file_mapper[new_file_name].name = new_file_name
+        else:
+            raise FileNotFoundError
