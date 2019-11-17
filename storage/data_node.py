@@ -3,6 +3,7 @@ from flask import Flask, request, Response, jsonify
 import os
 import shutil
 from flask_api import status
+from storage.utils import create_log
 
 app = Flask(__name__)
 
@@ -75,6 +76,7 @@ def file():
 
 
 def init_node():
+    create_log(app, 'data_node')
     if not os.path.exists(FILE_STORE):
         os.mkdir(FILE_STORE)
     # run master node first
