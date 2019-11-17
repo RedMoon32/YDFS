@@ -1,7 +1,9 @@
 import requests
 from flask import Flask, request, Response, jsonify
 import os
+import shutil
 from flask_api import status
+from storage.utils import create_log
 
 app = Flask(__name__)
 
@@ -18,7 +20,7 @@ def ping():
     return "Hello, Data Node is Alive!"
 
 
-@app.route("/filesystem", methods=["GET"])
+@app.route("/filesystem", methods=["GET", "DELETE"])
 def filesystem():
     if request.method == "GET":
         # @TODO - recursively check file on filesystem
@@ -28,6 +30,14 @@ def filesystem():
         files = recursive_file_get(FILE_STORE)
         # for now - just files in current directory
         return jsonify(os.listdir(FILE_STORE))
+    elif request.method == "DELETE":
+        try:
+            # remove the storage dir with all its contents and create it anew
+            shutil.rmtree(FILE_STORE, ignore_errors=True)
+            os.mkdir(FILE_STORE)
+            return Response(status=200)
+        except Exception as e:
+            return Response(f"Error clearing storage", 400)
 
 
 @app.route("/file", methods=["GET", "POST", "DELETE"])
@@ -66,6 +76,7 @@ def file():
 
 
 def init_node():
+    create_log(app, 'data_node')
     if not os.path.exists(FILE_STORE):
         os.mkdir(FILE_STORE)
     # run master node first
