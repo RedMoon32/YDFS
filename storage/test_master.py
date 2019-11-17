@@ -1,7 +1,9 @@
 import pytest
 
-from storage.masterNode import app as master_node, DataNode
-import storage.masterNode
+from storage.master_node import app as master_node, DataNode
+import storage.master_node
+
+from storage.filesystem import FileSystem, File
 
 
 @pytest.fixture
@@ -13,8 +15,8 @@ def client():
 
 
 def clean():
-    storage.masterNode.file_mapper = {}
-    storage.masterNode.data_nodes = []
+    storage.master_node.fs = FileSystem()
+    storage.master_node.data_nodes = []
 
 
 def test_register_datanode(client):
@@ -31,7 +33,7 @@ def test_file_location_to_store(client):
     resp = client.post("/datanode?ip=101.101.101.101&port=2000")
     assert resp.status_code == 201
 
-    resp = client.post("/file")
+    resp = client.post("/file?filename=a.txt")
     assert resp.json == {"ip": "101.101.101.101",
                          "port": 2000}
 
@@ -39,12 +41,14 @@ def test_file_location_to_store(client):
 
 
 def test_file_node_locations(client):
-    storage.masterNode.file_mapper = {"file1": [DataNode("127.0.0.1", "333"),
-                                                DataNode("127.0.0.2", "333")]}
+    storage.master_node.fs._file_mapper = {
+        "file1": File("file1", 1, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
+                      {}),
+    }
     resp = client.get("/file?filename=file1")
-    assert resp.json == [{"ip": "127.0.0.1",
-                          "port": 333},
-                         {"ip": "127.0.0.2",
-                          "port": 333}]
+    assert resp.json['nodes'] == [{"ip": "127.0.0.1",
+                                   "port": 333},
+                                  {"ip": "127.0.0.2",
+                                   "port": 333}]
 
     clean()

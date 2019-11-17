@@ -1,52 +1,17 @@
 from flask import Flask, jsonify, Response, request
-from random import choice
-
-from flask_api import status
-
+from random import choice, choices
 import threading
 import time
 import requests
 import os
-
-"""
-Master Node Api:
-+ get /ping get alive
-+ get /file?name return nodes where file is stored: [{ip:ip1,port:port1},{ip:ip2,port:port2}]
-+ put /file?name return node location to put file (select random node)
-delete /filesystem remove all files from all datanodes
-delete /file?name remove file 
-+ post /datanode? ip, port - add new data node to list
-post /fileCopy?name,destination - copy file to destination
-+ get /directory - get files from directory
-...to be continued...
-
-
-Background process:
-replication check 
-synchronise filesystem(file_mapper) - ask each data node for files it has
-"""
+from storage.data_node_utils import DataNode
+from storage.filesystem import FileSystem, File
 
 app = Flask(__name__)
 
-"""{file_name: [data_node1, data_node2, data_node3]}"""
-file_mapper = {}
 data_nodes = []
 
-
-# @TODO
-# rewrite all methods using Flask Restful
-
-class DataNode:
-    def __init__(self, ip, port):
-        self.ip = ip
-        self.port = int(port)
-
-    def __eq__(self, other):
-        return self.ip == other.ip and self.port == other.port
-
-    def serialize(self):
-        return {"ip": self.ip,
-                "port": self.port}
+fs = FileSystem()
 
 
 @app.route("/ping")
@@ -67,13 +32,17 @@ def datanode():
 
 @app.route("/file", methods=["POST", "GET"])
 def file():
+    filename = request.args["filename"]
+    file: File = fs.get_file(filename)
     if request.method == "GET":
-        filename = request.args["filename"]
-        if filename not in file_mapper:
+        if not file:
             return Response(status=404)
         else:
-            return jsonify(list(map(DataNode.serialize, file_mapper[filename])))
+            return jsonify(file.serialize())
     elif request.method == "POST":
+        file: File = fs.add_file(filename)
+        if not file:
+            return Response("File already exists", 400)
         return jsonify(choice(data_nodes).serialize())
 
 
