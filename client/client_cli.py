@@ -2,7 +2,7 @@ import requests
 import os
 import json
 
-from client.client_utils import check_args, check_response, request_datanodes, read_file
+from client.client_utils import *
 
 MASTER_NODE = "http://localhost:3030/"
 
@@ -40,7 +40,7 @@ def move_file(args):
     ]) == 0:
         # Request to put a file to a new destination
         # Request structure: /file?filename=<name>&destination=<dest>
-        resp = requests.put(os.path.join(MASTER_NODE, f'file?filename={args[1]}&destination={args[2]}'))
+        resp = requests.put(os.path.join(MASTER_NODE, f'file?filename={args[1]}&destination={make_abs(args[2])}'))
         check_response(resp)
 
 
@@ -51,20 +51,22 @@ def put_file(args):
         'file',
         'destination'
     ]) == 0:
-        # Request to store a file in the filesystem
-        # Request structure: /file?filename=<name>&destination=<dest>
         filename = args[1]
         destination = args[2]
-        resp = requests.post(os.path.join(MASTER_NODE, f'file?filename={filename}&destination={destination}'))
-        content = resp.json()
-        nodes = content['datanodes']  # Available storage datanodes
-        file = content['file']        # View of a file from the perspective of a masternode
+        path = join_path(filename, destination)
+
+        # Request to store a file in the filesystem
+        # Request structure: /file?filename=<path>
+        resp = requests.post(os.path.join(MASTER_NODE, f'file?filename={path}'))
         if check_response(resp) == 0:
+            content = resp.json()
+            nodes = content['datanodes']  # Available storage datanodes
+            file = content['file']        # View of a file from the perspective of a masternode
             data = read_file(filename)
             if data:
                 # Request to store a file in the storage
-                # Request structure: /file?filename=<name>&destination=<dest>
-                request_datanodes(nodes, f'file?filename={file["file_id"]}&destination={destination}', 'POST', data=data)
+                # Request structure: /file?filename=<filename>
+                request_datanodes(nodes, f'file?filename={file["file_id"]}', 'POST', data=data)
 
 
 if __name__ == "__main__":
