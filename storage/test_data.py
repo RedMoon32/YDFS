@@ -19,6 +19,8 @@ def init_storage_test():
 
 
 def test_filesystem_delete(client):
+    init_storage_test()
+
     os.mkdir(os.path.join(FILE_STORE, 'test'))
     assert len(os.listdir(FILE_STORE)) == 1
     client.delete('filesystem')

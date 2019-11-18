@@ -1,8 +1,9 @@
 import requests
-import os
 from flask import Response
+from os.path import isabs, join, normpath
 
 MAX_REQUEST_COUNT = 3
+pwd = '/'
 
 
 def check_response(resp):
@@ -35,11 +36,11 @@ def request_datanodes(datanodes, command, method, data=None):
         node_address = f"{datanode['ip']}:{datanode['port']}"
         for try_counter in range(MAX_REQUEST_COUNT):
             if method == "GET":
-                resp = requests.get(os.path.join(node_address, command), data=data)
+                resp = requests.get(join(node_address, command), data=data)
             elif method == "POST":
-                resp = requests.post(os.path.join(node_address, command), data=data)
+                resp = requests.post(join(node_address, command), data=data)
             elif method == "DELETE":
-                resp = requests.delete(os.path.join(node_address, command), data=data)
+                resp = requests.delete(join(node_address, command), data=data)
             if resp.status_code == 200:
                 return Response(status=200)
     return resp
@@ -51,3 +52,17 @@ def read_file(path):
     except OSError as e:
         print(e)
         return None
+
+
+def join_path(filename, destination):
+    if isabs(destination):
+        return normpath(join(destination, filename))
+    else:
+        return normpath(join(pwd, destination, filename))
+
+
+def make_abs(path):
+    if isabs(path):
+        return normpath(path)
+    else:
+        return normpath(join(pwd, path))

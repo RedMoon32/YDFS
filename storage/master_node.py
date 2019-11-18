@@ -86,11 +86,12 @@ def file():
             return jsonify(file.serialize())
 
     elif request.method == "POST":
-        file: File = fs.add_file(filename)
-        if not file:
-            return Response("File already exists", 400)
-        return jsonify(
-            {'datanodes': choose_datanodes(), 'file': file.serialize()})
+        try:
+            file: File = fs.add_file(filename)
+        except Exception as e:
+            print(str(e))
+            return Response(str(e), 400)
+        return jsonify({'datanodes': choose_datanodes(), 'file': file.serialize()})
 
     elif request.method == "PUT":
         if request.args["op"] == "mv":
