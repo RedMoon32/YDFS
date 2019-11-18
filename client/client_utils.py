@@ -15,17 +15,24 @@ def check_response(resp):
         return 1
 
 
-def check_args(command, args, missing_operands):
+def check_args(command: str, args: list, required_operands: list):
+    """
+    Check that number of arguments is correct.
+    :param command: CLI command to check. Used for user prompt.
+    :param args: received arguments
+    :param missing_operands:
+    :return:
+    """
     if len(args) < 2:
-        print(f'{command}: missing {missing_operands[0]} operand')
+        print(f'{command}: missing {required_operands[0]} operand')
         return 1
-    for i in range(1, len(missing_operands)):
+    for i in range(1, len(required_operands)):
         if len(args) < i + 2:
-            print(f"{command}: missing {missing_operands[i]} operand after '{args[i]}'")
+            print(f"{command}: missing {required_operands[i]} operand after '{args[i]}'")
             return 1
     # Check if extra operands are present
-    if len(args) - 1 > len(missing_operands):
-        print(f'{command}: extra operands are present, expected [{len(missing_operands)}] - got [{len(args) - 1}]')
+    if len(args) - 1 > len(required_operands):
+        print(f'{command}: extra operands are present, expected [{len(required_operands)}] - got [{len(args) - 1}]')
         return 1
     return 0
 
@@ -55,13 +62,21 @@ def read_file(path):
 
 
 def join_path(filename, destination):
-    if isabs(destination):
-        return normpath(join(destination, filename))
-    else:
-        return normpath(join(pwd, destination, filename))
+    """
+    Join destination dir and filename
+    :param filename:
+    :param destination:
+    :return: joined absolute normalized (without loops) path
+    """
+    return make_abs(join(destination, filename))
 
 
 def make_abs(path):
+    """
+    If path is not absolute, join with a pending working directory
+    :param path:
+    :return: absolute normalized (without loops) path
+    """
     if isabs(path):
         return normpath(path)
     else:
