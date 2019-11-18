@@ -1,15 +1,13 @@
 import requests
 import os
-import json
 
 from client.client_utils import *
 
 MASTER_NODE = "http://localhost:3030/"
 
 
-# Print out commands' description
-# -help
 def show_help():
+    """Print out commands' description"""
     print('Commands and arguments:\n'
           '-ping                     : ping the filesystem\n'
           '-init                     : initialize the storage\n'
@@ -17,24 +15,25 @@ def show_help():
           '-put <file> <destination> : put a local file to the remote filesystem\n')
 
 
-# Check that master_node is alive
-# -ping
 def ping_master_node():
+    """Check that master_node is alive"""
     resp = requests.get(os.path.join(MASTER_NODE, args[0]))
     check_response(resp)
 
 
-# Clear filesystem, prepare it for work
-# -init
 def initialize_filesystem():
+    """Clear filesystem, prepare it for work"""
     resp = requests.delete(os.path.join(MASTER_NODE, 'filesystem'))
     check_response(resp)
 
 
-# Move a file to a destination folder
-# -mv <file> <destination>
-def move_file(args):
-    if check_args('mv', args, missing_operands=[
+def move_file(args: list):
+    """
+    Move a file to a destination folder
+    :param args: mv <file> <destination>
+    :return:
+    """
+    if check_args('mv', args, required_operands=[
         'file',
         'destination'
     ]) == 0:
@@ -44,10 +43,13 @@ def move_file(args):
         check_response(resp)
 
 
-# Put local file to a remote destination folder
-# -put <file> <destination>
-def put_file(args):
-    if check_args('put', args, missing_operands=[
+def put_file(args: list):
+    """
+    Put local file to a remote destination folder
+    :param args: mv <file> <destination>
+    :return:
+    """
+    if check_args('put', args, required_operands=[
         'file',
         'destination'
     ]) == 0:
