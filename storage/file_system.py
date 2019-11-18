@@ -27,8 +27,10 @@ class FileSystem:
         self._id = 0
 
     def add_file(self, filename) -> File:
-        if filename in self._file_mapper or not self.dir_exists(os.path.dirname(filename)):
-            return None
+        if filename in self._file_mapper:
+            raise Exception(f"File '{filename}' already exists")
+        if not self.dir_exists(os.path.dirname(filename)):
+            raise Exception(f"Directory '{os.path.dirname(filename)}' not found")
         else:
             self._id += 1
             self._file_mapper[filename] = \

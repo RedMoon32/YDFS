@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, Response, request
-from random import choice, choices
+from random import choices
 import threading
 import time
 import requests
@@ -7,6 +7,7 @@ import os
 from storage.data_node_utils import DataNode
 from storage.file_system import FileSystem, File
 from storage.utils import create_log
+from math import ceil
 
 app = Flask(__name__)
 
@@ -14,6 +15,7 @@ data_nodes = []
 
 fs = FileSystem()
 MAX_REQUEST_COUNT = 3
+LOAD_FACTOR = 0.5  # fraction of datanodes to provide to a client at once
 
 
 def request_datanode(datanode, command, method):
@@ -36,6 +38,12 @@ def request_datanode(datanode, command, method):
 def drop_datanode(datanode):
     data_nodes.remove(datanode)
     app.logger.info(f"Removed not responding datanode {datanode.ip}:{datanode.port}")
+
+
+def choose_datanodes():
+    k = ceil(len(data_nodes) * LOAD_FACTOR) # how much data_nodes to choose
+    # Serialize each randomly chosen datanode and return a list of such datanodes
+    return list(map(lambda node: node.serialize(), choices(data_nodes, k=k)))
 
 
 @app.route("/ping")
@@ -78,10 +86,12 @@ def file():
             return jsonify(file.serialize())
 
     elif request.method == "POST":
-        file: File = fs.add_file(filename)
-        if not file:
-            return Response("File already exists", 400)
-        return jsonify(choice(data_nodes).serialize())
+        try:
+            file: File = fs.add_file(filename)
+        except Exception as e:
+            print(str(e))
+            return Response(str(e), 400)
+        return jsonify({'datanodes': choose_datanodes(), 'file': file.serialize()})
 
     elif request.method == "PUT":
         destination = request.args["destination"]
