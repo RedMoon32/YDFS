@@ -11,9 +11,10 @@ MASTER_NODE = "http://localhost:3030/"
 # -help
 def show_help():
     print('Commands and arguments:\n'
-          '-ping                    : ping the filesystem\n'
-          '-init                    : initialize the storage\n'
-          '-mv <file> <destination> : move file to a given destination dir\n')
+          '-ping                     : ping the filesystem\n'
+          '-init                     : initialize the storage\n'
+          '-mv <file> <destination>  : move file to a given destination dir\n'
+          '-put <file> <destination> : put a local file to the remote filesystem\n')
 
 
 # Check that master_node is alive
