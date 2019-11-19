@@ -27,8 +27,10 @@ class FileSystem:
         self._id = 0
 
     def add_file(self, filename) -> File:
-        if filename in self._file_mapper or not self.dir_exists(os.path.dirname(filename)):
-            return None
+        if filename in self._file_mapper:
+            raise Exception(f"File '{filename}' already exists")
+        if not self.dir_exists(os.path.dirname(filename)):
+            raise Exception(f"Directory '{os.path.dirname(filename)}' not found")
         else:
             self._id += 1
             self._file_mapper[filename] = \
@@ -37,6 +39,9 @@ class FileSystem:
 
     def get_file(self, filename) -> File:
         return self._file_mapper.get(filename, None)
+
+    def file_exists(self, filename):
+        return filename in self._file_mapper
 
     def add_directory(self, dirname):
         if not self.dir_exists(dirname) and self.dir_exists(os.path.dirname(dirname)):
@@ -57,3 +62,10 @@ class FileSystem:
     def get_files(self, dirname):
         # O(n) getting list of files in dir
         return [self._file_mapper[file] for file in self._file_mapper if self.file_in_directory(file, dirname)]
+
+    def rename_file(self, file_name, new_file_name):
+        if file_name in self._file_mapper:
+            self._file_mapper[new_file_name] = self._file_mapper.pop(file_name)
+            self._file_mapper[new_file_name].name = new_file_name
+        else:
+            raise FileNotFoundError

@@ -34,8 +34,8 @@ def test_file_location_to_store(client):
     assert resp.status_code == 201
 
     resp = client.post("/file?filename=a.txt")
-    assert resp.json == {"ip": "101.101.101.101",
-                         "port": 2000}
+    assert resp.json['datanodes'] == [{"ip": "101.101.101.101",
+                         "port": 2000}]
 
     resp = client.post("/file?filename=/b/a.txt")
     assert resp.status_code == 400
@@ -106,3 +106,29 @@ def test_get_directory(client):
     assert resp.json["dirs"] == ["/a", "/b"] and len(resp.json["files"]) == 2
     assert resp.json["files"][0]["file_id"] == 333
     assert resp.json["files"][1]["file_id"] == 444
+
+
+def test_file_move(client):
+    storage.master_node.fs.add_file("a.txt")
+    storage.master_node.fs._dirs.append("/b")
+
+    resp = client.put("/file?filename=a.txt&destination=/b")
+    assert resp.status_code == 200
+    assert storage.master_node.fs.get_file("a.txt") is None
+    assert storage.master_node.fs.get_file("/b/a.txt") is not None
+
+    resp = client.put("/file?filename=/b/a.txt&destination=/b/c")
+    assert resp.status_code == 404
+
+    storage.master_node.fs._dirs.append("/c")
+    storage.master_node.fs.add_file("/c/a.txt")
+
+    resp = client.put("/file?filename=/b/a.txt&destination=/c")
+    assert resp.status_code == 404
+
+
+def test_filesystem_delete(client):
+    client.delete('filesystem')
+    assert storage.master_node.fs._id == 0
+    assert storage.master_node.fs._dirs == ['/']
+    assert storage.master_node.fs._file_mapper == {}
