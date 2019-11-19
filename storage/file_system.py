@@ -38,12 +38,22 @@ class FileSystem:
     def get_file(self, filename) -> File:
         return self._file_mapper.get(filename, None)
 
-    def add_directory(self, dirname) -> bool:
-        if not self.dir_exists(dirname) and self.dir_exists(os.path.join(dirname, '..')):
+    def add_directory(self, dirname):
+        if not self.dir_exists(dirname) and self.dir_exists(os.path.dirname(dirname)):
             self._dirs.append(dirname)
-            return True
-        return False
+        else:
+            raise FileExistsError
 
     def dir_exists(self, dirname):
         dirname = "/" if dirname == "" else dirname
         return dirname in self._dirs
+
+    def get_subdirs(self, dirname):
+        return [dir for dir in self._dirs if dir != dirname and os.path.dirname(dir) == dirname]
+
+    def file_in_directory(self, filename, dirname):
+        return os.path.dirname(filename) == dirname
+
+    def get_files(self, dirname):
+        # O(n) getting list of files in dir
+        return [self._file_mapper[file] for file in self._file_mapper if self.file_in_directory(file, dirname)]

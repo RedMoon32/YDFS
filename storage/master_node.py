@@ -46,6 +46,35 @@ def file():
         return jsonify(choice(data_nodes).serialize())
 
 
+@app.route("/directory", methods=["GET", "POST"])
+def directory():
+    dirname = request.args["name"]
+
+    if dirname[-1] == "/":
+        dirname = dirname[:-1]
+
+    if dirname == "" or dirname[0] != "/":
+        dirname = "/" + dirname
+
+    if request.method == "POST":
+        if dirname == "":
+            return Response("Empty name not allowed", 400)
+        if fs.dir_exists(dirname):
+            return Response("Directory already exists", 400)
+        if fs.get_file(dirname) is not None:
+            return Response("File exists with given name", 400)
+        if not fs.dir_exists(os.path.dirname(dirname)):
+            return Response("Upper not exists", 400)
+        fs.add_directory(dirname)
+        return Response("Directory created", 201)
+
+    elif request.method == "GET":
+        if not fs.dir_exists(dirname):
+            return Response("Directory does not exists", 400)
+        return jsonify({'files': list(map(File.serialize, fs.get_files(dirname))),
+                        'dirs': list(fs.get_subdirs(dirname))})
+
+
 def ping_data_nodes():
     time.sleep(5)
     while True:
