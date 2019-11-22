@@ -4,6 +4,9 @@ import threading
 import time
 import requests
 import os
+
+from urllib3 import HTTPConnectionPool
+
 from storage.data_node_utils import DataNode
 from storage.file_system import FileSystem, File
 from storage.utils import create_log
@@ -31,14 +34,17 @@ def request_datanode(datanode, command, method):
     node_address = f"{datanode.ip}:{datanode.port}"
     resp = None
     for try_counter in range(MAX_REQUEST_COUNT):
-        if method == "GET":
-            resp = requests.get(os.path.join(node_address, command))
-        elif method == "POST":
-            resp = requests.post(os.path.join(node_address, command))
-        elif method == "DELETE":
-            resp = requests.delete(os.path.join(node_address, command))
-        if resp.status_code == 200:
-            return Response(status=200)
+        try:
+            if method == "GET":
+                resp = requests.get(os.path.join(node_address, command))
+            elif method == "POST":
+                resp = requests.post(os.path.join(node_address, command))
+            elif method == "DELETE":
+                resp = requests.delete(os.path.join(node_address, command))
+            if resp.status_code == 200:
+                return Response(status=200)
+        except HTTPConnectionPool:
+            pass
     # drop datanode if it does not respond
     drop_datanode(datanode)
     return resp
@@ -124,17 +130,17 @@ def directory():
         return jsonify({'files': list(map(File.serialize, fs.get_files(dirname))),
                         'dirs': list(fs.get_subdirs(dirname))})
 
+
 def ping_data_nodes():
     time.sleep(5)
     while True:
-
         for d in data_nodes:
             node_address = f"{d.ip}:{d.port}"
             app.logger.info(f"Synchronisation with datanode {node_address}")
-            resp = requests.get(os.path.join(node_address, "ping"))
-            if resp.status_code == 200:
+            try:
+                resp = requests.get(os.path.join(node_address, "ping"))
                 app.logger.info(f"Success - datanode {node_address} is alive")
-            else:
+            except HTTPConnectionPool:
                 app.logger.info(f"Datanode {node_address} synchronisation failed")
         time.sleep(5)
 
