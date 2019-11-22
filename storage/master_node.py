@@ -18,6 +18,15 @@ MAX_REQUEST_COUNT = 3
 LOAD_FACTOR = 0.5  # fraction of datanodes to provide to a client at once
 
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    status_code = 400
+    if isinstance(e, FileNotFoundError):
+        status_code = 404
+
+    return Response(str(e), status=status_code)
+
+
 def request_datanode(datanode, command, method):
     node_address = f"{datanode.ip}:{datanode.port}"
     resp = None
@@ -41,7 +50,7 @@ def drop_datanode(datanode):
 
 
 def choose_datanodes():
-    k = ceil(len(data_nodes) * LOAD_FACTOR) # how much data_nodes to choose
+    k = ceil(len(data_nodes) * LOAD_FACTOR)  # how much data_nodes to choose
     # Serialize each randomly chosen datanode and return a list of such datanodes
     return list(map(lambda node: node.serialize(), choices(data_nodes, k=k)))
 
@@ -86,21 +95,13 @@ def file():
             return jsonify(file.serialize())
 
     elif request.method == "POST":
-        try:
-            file: File = fs.add_file(filename)
-        except Exception as e:
-            print(str(e))
-            return Response(str(e), 400)
+        file: File = fs.add_file(filename)
         return jsonify({'datanodes': choose_datanodes(), 'file': file.serialize()})
 
     elif request.method == "PUT":
         destination = request.args["destination"]
-        new_file_name = os.path.join(destination, os.path.basename(filename))
-        if fs.dir_exists(destination) and not fs.file_exists(new_file_name):
-            fs.rename_file(filename, new_file_name)
-            return Response(status=200)
-        else:
-            return Response("Output folder path does not exists", 404)
+        fs.move_file(filename, destination)
+        return Response(status=200)
 
 
 @app.route("/directory", methods=["GET", "POST"])
@@ -114,14 +115,6 @@ def directory():
         dirname = "/" + dirname
 
     if request.method == "POST":
-        if dirname == "":
-            return Response("Empty name not allowed", 400)
-        if fs.dir_exists(dirname):
-            return Response("Directory already exists", 400)
-        if fs.get_file(dirname) is not None:
-            return Response("File exists with given name", 400)
-        if not fs.dir_exists(os.path.dirname(dirname)):
-            return Response("Upper not exists", 400)
         fs.add_directory(dirname)
         return Response("Directory created", 201)
 
