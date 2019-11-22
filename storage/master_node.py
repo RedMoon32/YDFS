@@ -124,7 +124,6 @@ def directory():
         return jsonify({'files': list(map(File.serialize, fs.get_files(dirname))),
                         'dirs': list(fs.get_subdirs(dirname))})
 
-
 def ping_data_nodes():
     time.sleep(5)
     while True:
