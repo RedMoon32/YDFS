@@ -62,6 +62,52 @@ def test_file_node_locations(client):
     clean()
 
 
+def test_mkdir(client):
+    resp = client.post("/directory?name=/b")
+    assert resp.status_code == 201
+
+    resp = client.post("/directory?name=c/d")
+    assert resp.status_code == 400
+
+    resp = client.post("/directory?name=c")
+    assert resp.status_code == 201
+
+    resp = client.post("/directory?name=/c")
+    assert resp.status_code == 400
+
+    resp = client.post("/directory?name=c/d")
+    assert resp.status_code == 201
+
+    assert storage.master_node.fs.dir_exists("/b")
+    assert storage.master_node.fs.dir_exists("/c")
+    assert storage.master_node.fs.dir_exists("/c/d")
+
+    clean()
+
+
+def test_get_directory(client):
+    storage.master_node.fs._dirs = ["/", "/a", "/b", "/a/c"]
+    storage.master_node.fs._file_mapper = {
+        "/a/a1.txt": File("1", 111, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
+                          {}),
+        "/a/c/a2.txt": File("2", 222, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
+                            {}),
+        "/r1.txt": File("3", 333, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
+                        {}),
+        "/r2.txt": File("4", 444, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
+                        {}),
+    }
+
+    resp = client.get("directory?name=/a/c")
+    assert resp.json["dirs"] == []
+    assert resp.json["files"][0]["file_id"] == 222
+
+    resp = client.get("directory?name=/")
+    assert resp.json["dirs"] == ["/a", "/b"] and len(resp.json["files"]) == 2
+    assert resp.json["files"][0]["file_id"] == 333
+    assert resp.json["files"][1]["file_id"] == 444
+
+
 def test_file_move(client):
     storage.master_node.fs.add_file("a.txt")
     storage.master_node.fs._dirs.append("/b")
