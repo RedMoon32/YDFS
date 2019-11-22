@@ -6,7 +6,7 @@ from client.client_utils import *
 MASTER_NODE = "http://localhost:3030/"
 
 
-def show_help():
+def show_help(*args):
     """Print out commands' description"""
     print('Commands and arguments:\n'
           '-ping                     : ping the filesystem\n'
@@ -15,19 +15,19 @@ def show_help():
           '-put <file> <destination> : put a local file to the remote filesystem\n')
 
 
-def ping_master_node():
+def ping_master_node(*args):
     """Check that master_node is alive"""
-    resp = requests.get(os.path.join(MASTER_NODE, args[0]))
+    resp = requests.get(os.path.join(MASTER_NODE, 'ping'))
     check_response(resp)
 
 
-def initialize_filesystem():
+def initialize_filesystem(*args):
     """Clear filesystem, prepare it for work"""
     resp = requests.delete(os.path.join(MASTER_NODE, 'filesystem'))
     check_response(resp)
 
 
-def move_file(args: list):
+def move_file(*args):
     """
     Move a file to a destination folder
     :param args: mv <file> <destination>
@@ -43,7 +43,7 @@ def move_file(args: list):
         check_response(resp)
 
 
-def put_file(args: list):
+def put_file(*args):
     """
     Put local file to a remote destination folder
     :param args: mv <file> <destination>
@@ -60,31 +60,35 @@ def put_file(args: list):
         # Request to store a file in the filesystem
         # Request structure: /file?filename=<path>
         resp = requests.post(os.path.join(MASTER_NODE, f'file?filename={path}'))
+        data = read_file(filename)
         if check_response(resp) == 0:
             content = resp.json()
             nodes = content['datanodes']  # Available storage datanodes
-            file = content['file']        # View of a file from the perspective of a masternode
-            data = read_file(filename)
+            file = content['file']  # View of a file from the perspective of a masternode
             if data:
                 # Request to store a file in the storage
                 # Request structure: /file?filename=<filename>
                 request_datanodes(nodes, f'file?filename={file["file_id"]}', 'POST', data=data)
 
 
+command_tree = {
+    'help': show_help,
+    'ping': ping_master_node,
+    'init': initialize_filesystem,
+    'mv': move_file,
+    'put': put_file,
+}
+
 if __name__ == "__main__":
     print("Client is working , but run Master Node first")
     while True:
         print("Enter the command(type -help to view commands' description)")
-        args = input("-").split()
+        args = input("$ ").split()
         if len(args) == 0:
             continue
-        elif args[0] == 'help':
-            show_help()
-        elif args[0] == "ping":
-            ping_master_node()
-        elif args[0] == 'init':
-            initialize_filesystem()
-        elif args[0] == 'mv':
-            move_file(args)
-        elif args[0] == 'put':
-            put_file(args)
+        try:
+            command_tree[args[0]](*args)
+        except KeyError:
+            print("No such command, please try again")
+        except Exception:
+            print("Command failed, please try again ")
