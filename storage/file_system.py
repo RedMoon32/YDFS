@@ -44,10 +44,17 @@ class FileSystem:
         return filename in self._file_mapper
 
     def add_directory(self, dirname):
-        if not self.dir_exists(dirname) and self.dir_exists(os.path.dirname(dirname)):
-            self._dirs.append(dirname)
-        else:
-            raise FileExistsError
+
+        if dirname == "":
+            raise ValueError("Empty name not allowed")
+        if self.dir_exists(dirname):
+            raise FileExistsError("Directory already exists")
+        if self.get_file(dirname) is not None:
+            raise ValueError("File exists with given name")
+        if not self.dir_exists(os.path.dirname(dirname)):
+            raise ValueError("Upper not exists")
+
+        self._dirs.append(dirname)
 
     def dir_exists(self, dirname):
         dirname = "/" if dirname == "" else dirname
@@ -63,9 +70,17 @@ class FileSystem:
         # O(n) getting list of files in dir
         return [self._file_mapper[file] for file in self._file_mapper if self.file_in_directory(file, dirname)]
 
-    def rename_file(self, file_name, new_file_name):
+    def move_file(self, file_name, destination):
+        new_file_name = os.path.join(destination, os.path.basename(file_name))
+
+        if not self.dir_exists(destination):
+            raise FileNotFoundError("No directory found")
+
+        if self.get_file(new_file_name):
+            raise FileExistsError("File already exists")
+
         if file_name in self._file_mapper:
             self._file_mapper[new_file_name] = self._file_mapper.pop(file_name)
             self._file_mapper[new_file_name].name = new_file_name
         else:
-            raise FileNotFoundError
+            raise FileNotFoundError("No file found")

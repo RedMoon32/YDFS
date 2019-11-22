@@ -35,7 +35,7 @@ def test_file_location_to_store(client):
 
     resp = client.post("/file?filename=a.txt")
     assert resp.json['datanodes'] == [{"ip": "101.101.101.101",
-                         "port": 2000}]
+                                       "port": 2000}]
 
     resp = client.post("/file?filename=/b/a.txt")
     assert resp.status_code == 400
@@ -49,6 +49,8 @@ def test_file_location_to_store(client):
 
 
 def test_file_node_locations(client):
+    clean()
+
     storage.master_node.fs._file_mapper = {
         "file1": File("file1", 1, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
                       {}),
@@ -59,10 +61,10 @@ def test_file_node_locations(client):
                                   {"ip": "127.0.0.2",
                                    "port": 333}]
 
-    clean()
-
 
 def test_mkdir(client):
+    clean()
+
     resp = client.post("/directory?name=/b")
     assert resp.status_code == 201
 
@@ -82,10 +84,10 @@ def test_mkdir(client):
     assert storage.master_node.fs.dir_exists("/c")
     assert storage.master_node.fs.dir_exists("/c/d")
 
-    clean()
-
 
 def test_get_directory(client):
+    clean()
+
     storage.master_node.fs._dirs = ["/", "/a", "/b", "/a/c"]
     storage.master_node.fs._file_mapper = {
         "/a/a1.txt": File("1", 111, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
@@ -109,6 +111,8 @@ def test_get_directory(client):
 
 
 def test_file_move(client):
+    clean()
+
     storage.master_node.fs.add_file("a.txt")
     storage.master_node.fs._dirs.append("/b")
 
@@ -124,7 +128,7 @@ def test_file_move(client):
     storage.master_node.fs.add_file("/c/a.txt")
 
     resp = client.put("/file?filename=/b/a.txt&destination=/c")
-    assert resp.status_code == 404
+    assert resp.status_code == 400
 
 
 def test_filesystem_delete(client):
