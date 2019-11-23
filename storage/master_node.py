@@ -6,7 +6,7 @@ import requests
 import os
 
 from urllib3 import HTTPConnectionPool
-
+from requests.exceptions import ConnectionError
 from storage.data_node_utils import DataNode
 from storage.file_system import FileSystem, File
 from storage.utils import create_log
@@ -168,6 +168,18 @@ def directory():
                         'dirs': list(fs.get_subdirs(dirname))})
 
 
+@app.route("/file_created", methods=["POST"])
+def event():
+    file_id, ip, port = int(request.args["file_id"]), f"http://{request.remote_addr}", request.args["port"]
+    dnode = DataNode(ip, port)
+    file: File = fs.get_file_by_id(file_id)
+    if dnode not in data_nodes or file is None:
+        return Response(status=404)
+    else:
+        file.nodes.append(dnode)
+        return Response(status=200)
+
+
 def ping_data_nodes():
     time.sleep(5)
     while True:
@@ -177,8 +189,9 @@ def ping_data_nodes():
             try:
                 resp = requests.get(os.path.join(node_address, "ping"))
                 app.logger.info(f"Success - datanode {node_address} is alive")
-            except HTTPConnectionPool:
+            except ConnectionError as e:
                 app.logger.info(f"Datanode {node_address} synchronisation failed")
+                drop_datanode(d)
         time.sleep(5)
 
 

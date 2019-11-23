@@ -40,16 +40,18 @@ def check_args(command: str, args: list, required_operands: list):
 def request_datanodes(datanodes, command, method, data=None):
     resp = None
     for try_counter in range(MAX_REQUEST_COUNT):
-        for datanode in datanodes:
-            node_address = f"{datanode['ip']}:{datanode['port']}"
-            if method == "GET":
-                resp = requests.get(join(node_address, command), data=data)
-            elif method == "POST":
-                resp = requests.post(join(node_address, command), data=data)
-            elif method == "DELETE":
-                resp = requests.delete(join(node_address, command), data=data)
-            if resp.status_code == 200:
-                return Response(status=200)
+        try:
+            for datanode in datanodes:
+                node_address = f"{datanode['ip']}:{datanode['port']}"
+                if method == "GET":
+                    resp = requests.get(join(node_address, command), data=data)
+                elif method == "POST":
+                    resp = requests.post(join(node_address, command), data=data)
+                elif method == "DELETE":
+                    resp = requests.delete(join(node_address, command), data=data)
+                return resp
+        except Exception:
+            pass
     raise Exception
 
 
