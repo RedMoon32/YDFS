@@ -52,7 +52,7 @@ def put_file(*args):
     if check_args('put', args, required_operands=[
         'file',
         'destination'
-    ]) == 0:
+    ]):
         filename = args[1]
         destination = args[2]
         path = join_path(filename, destination)
@@ -60,7 +60,7 @@ def put_file(*args):
         # Request to store a file in the filesystem
         # Request structure: /file?filename=<path>
         resp = requests.post(os.path.join(MASTER_NODE, f'file?filename={path}'))
-        data = read_file(filename)
+        data = os_read_file(filename)
         if check_response(resp) == 0:
             content = resp.json()
             nodes = content['datanodes']  # Available storage datanodes
@@ -71,12 +71,28 @@ def put_file(*args):
                 request_datanodes(nodes, f'file?filename={file["file_id"]}', 'POST', data=data)
 
 
+def read_file(*args):
+    if check_args('cat', args, ['file']):
+        fpath = make_abs(args[1])
+        resp = requests.get(os.path.join(MASTER_NODE, f"file?name={fpath}"))
+        if resp.status_code == 404:
+            print("File not found")
+        else:
+            data = resp.json()
+            resp = request_datanodes(data['nodes'], f"file?filename={data['file_id']}", 'GET')
+            if resp.status_code == 200:
+                print(f"=============\nFile {fpath} content:\n\n{resp.content.decode()}")
+            else:
+                print(f"Error reading from dataNode", resp.content.decode())
+
+
 command_tree = {
     'help': show_help,
     'ping': ping_master_node,
     'init': initialize_filesystem,
     'mv': move_file,
     'put': put_file,
+    'cat': read_file,
 }
 
 if __name__ == "__main__":
