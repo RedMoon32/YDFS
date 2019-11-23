@@ -48,11 +48,11 @@ class FileSystem:
         if dirname == "":
             raise ValueError("Empty name not allowed")
         if self.dir_exists(dirname):
-            raise FileExistsError("Directory already exists")
+            raise FileExistsError(f"Directory '{dirname}' already exists")
         if self.get_file(dirname) is not None:
-            raise ValueError("File exists with given name")
+            raise ValueError(f"Already exists the file named '{dirname}'")
         if not self.dir_exists(os.path.dirname(dirname)):
-            raise ValueError("Upper not exists")
+            raise ValueError(f"Upper directory '{os.path.dirname(dirname)}' does not exist")
 
         self._dirs.append(dirname)
 

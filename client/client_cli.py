@@ -6,23 +6,25 @@ from client.client_utils import *
 MASTER_NODE = "http://localhost:3030/"
 
 
-def show_help(*args):
+def show_help(*unused):
     """Print out commands' description"""
     print('Commands and arguments:\n'
-          '-ping                     : ping the filesystem\n'
-          '-init                     : initialize the storage\n'
-          '-mv <file> <destination>  : move file to a given destination dir\n'
-          '-put <file> <destination> : put a local file to the remote filesystem\n'
-          '-get <file> <local_destinatio> :put a remote file to local filesystem')
+          '$ ping                     : ping the filesystem\n'
+          '$ init                     : initialize the storage\n'
+          '$ mv <file> <destination>  : move file to a given destination dir\n'
+          '$ put <file> <destination> : put a local file to the remote filesystem\n'
+          '$ cd <destination>         : change remote pwd to a destination dir\n'
+          '$ mkdir <directory>        : create a specified dir\n'
+          '$ get <file> <local_destination> :put a remote file to local filesystem')
 
 
-def ping_master_node(*args):
+def ping_master_node(*unused):
     """Check that master_node is alive"""
     resp = requests.get(os.path.join(MASTER_NODE, 'ping'))
     check_response(resp)
 
 
-def initialize_filesystem(*args):
+def initialize_filesystem(*unused):
     """Clear filesystem, prepare it for work"""
     resp = requests.delete(os.path.join(MASTER_NODE, 'filesystem'))
     check_response(resp)
@@ -38,9 +40,11 @@ def move_file(*args):
         'file',
         'destination'
     ]):
+        filename = make_abs(args[1])
+        destination = make_abs(args[2])
         # Request to put a file to a new destination
         # Request structure: /file?filename=<name>&destination=<dest>
-        resp = requests.put(os.path.join(MASTER_NODE, f'file?filename={args[1]}&destination={make_abs(args[2])}'))
+        resp = requests.put(os.path.join(MASTER_NODE, f'file?filename={filename}&destination={destination}'))
         check_response(resp)
 
 
@@ -73,6 +77,31 @@ def put_file(*args):
                     request_datanodes(nodes, f'file?filename={file["file_id"]}', 'POST', data=data)
 
 
+def change_dir(*args):
+    """
+    Change remote pwd to a destination folder
+    :param args: cd <destination>
+    :return:
+    """
+    if check_args('cd', args, required_operands=['destination']):
+        destination = make_abs(args[1])
+        resp = requests.get(os.path.join(MASTER_NODE, f'directory?name={destination}'))
+        if check_response(resp):
+            set_pwd(destination)
+
+
+def make_dir(*args):
+    """
+    Change remote pwd to a destination folder
+    :param args: cd <destination>
+    :return:
+    """
+    if check_args('mkdir', args, required_operands=['destination']):
+        destination = make_abs(args[1])
+        resp = requests.post(os.path.join(MASTER_NODE, f'directory?name={destination}'))
+        check_response(resp)
+
+
 def read_file(*args):
     if check_args('get', args, ['file', 'local_destination']):
         fpath = make_abs(args[1])
@@ -102,13 +131,15 @@ command_tree = {
     'init': initialize_filesystem,
     'mv': move_file,
     'put': put_file,
+    'cd': change_dir,
+    'mkdir': make_dir,
     'get': read_file,
 }
 
 if __name__ == "__main__":
     print("Client is working , but run Master Node first")
     while True:
-        print("Enter the command(type -help to view commands' description)")
+        print("Enter the command(type '$ help' to view the commands' description)")
         args = input("$ ").split()
         if len(args) == 0:
             continue
