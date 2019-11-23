@@ -66,6 +66,12 @@ class FileSystem:
     def file_in_directory(self, filename, dirname):
         return os.path.dirname(filename) == dirname
 
+    def get_file_by_id(self, file_id):
+        for file in self._file_mapper:
+            if self._file_mapper[file].id == file_id:
+                return self._file_mapper[file]
+        return None
+
     def get_files(self, dirname):
         # O(n) getting list of files in dir
         return [self._file_mapper[file] for file in self._file_mapper if self.file_in_directory(file, dirname)]

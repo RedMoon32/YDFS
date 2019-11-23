@@ -1,3 +1,4 @@
+import pook
 import pytest
 import os
 
@@ -46,9 +47,10 @@ def test_file_get(client):
 
     os.remove(fpath)
 
-
+@pook.on
 def test_file_put(client):
     init_storage_test()
+    mock = pook.post('http://localhost:3030/file_created?file_id=1&port=2020', reply=200)
 
     assert not os.path.exists(os.path.join(FILE_STORE, "1"))
     data = "AAAAAAAAAAABBBBBBBBBBCCCCCCCCCCCCCC"
