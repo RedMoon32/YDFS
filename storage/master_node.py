@@ -107,7 +107,7 @@ def file():
     elif request.method == "PUT":
         destination = request.args["destination"]
         fs.move_file(filename, destination)
-        return Response(status=200)
+        return Response(f"File '{filename}' was moved to '{destination}'", 200)
 
 
 @app.route("/directory", methods=["GET", "POST"])
