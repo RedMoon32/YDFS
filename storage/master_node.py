@@ -59,8 +59,8 @@ def ping():
 
 @app.route("/datanode", methods=["POST"])
 def datanode():
-    ip, port = request.args["ip"], request.args["port"]
-    new_datanode = DataNode(ip, port)
+    host, port = request.args["host"], request.args["port"]
+    new_datanode = DataNode(host, port)
     if new_datanode not in data_nodes:
         data_nodes.append(new_datanode)
         return Response(status=201)

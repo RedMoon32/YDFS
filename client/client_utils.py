@@ -57,7 +57,7 @@ def request_datanodes(datanodes, command, method, data=None):
                 return resp
         except Exception:
             pass
-    raise Exception
+    print("Error reading from data-nodes")
 
 
 def os_read_file(path):
