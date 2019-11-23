@@ -1,4 +1,5 @@
 import requests
+import os
 from flask import Response
 from os.path import isabs, join, normpath
 
@@ -7,15 +8,15 @@ pwd = '/'
 
 
 def check_response(resp):
-    if resp.status_code == 200:
+    if resp.status_code // 100 == 2:  # status codes 2xx
         print(resp.content.decode())
-        return 0
+        return True
     else:
         print("Error:", resp.content.decode())
-        return 1
+        return False
 
 
-def check_args(command: str, args: list, required_operands: list):
+def check_args(command: str, args: tuple, required_operands: list):
     """
     Check that number of arguments is correct.
     :param command: CLI command to check. Used for user prompt.
@@ -25,16 +26,16 @@ def check_args(command: str, args: list, required_operands: list):
     """
     if len(args) < 2:
         print(f'{command}: missing {required_operands[0]} operand')
-        return 1
+        return False
     for i in range(1, len(required_operands)):
         if len(args) < i + 2:
             print(f"{command}: missing {required_operands[i]} operand after '{args[i]}'")
-            return 1
+            return False
     # Check if extra operands are present
     if len(args) - 1 > len(required_operands):
         print(f'{command}: extra operands are present, expected [{len(required_operands)}] - got [{len(args) - 1}]')
-        return 1
-    return 0
+        return False
+    return True
 
 
 def request_datanodes(datanodes, command, method, data=None):
@@ -81,3 +82,9 @@ def make_abs(path):
         return normpath(path)
     else:
         return normpath(join(pwd, path))
+
+
+def set_pwd(path):
+    """Setter for a pending working directory"""
+    global pwd
+    pwd = path
