@@ -82,7 +82,7 @@ def filesystem():
     if request.method == "DELETE":
         fs.__init__()
         for d in data_nodes:
-            request_datanode(d, 'filesystem', request.method)
+            request_datanode(d, "filesystem", request.method)
         if len(data_nodes) > 0:
             return Response("Storage is initialized and ready", 200)
         else:
@@ -102,7 +102,7 @@ def file():
 
     elif request.method == "POST":
         file: File = fs.add_file(filename)
-        return jsonify({'datanodes': choose_datanodes(), 'file': file.serialize()})
+        return jsonify({"datanodes": choose_datanodes(), "file": file.serialize()})
 
     elif request.method == "PUT":
         destination = request.args["destination"]
@@ -127,13 +127,21 @@ def directory():
     elif request.method == "GET":
         if not fs.dir_exists(dirname):
             return Response(f"Directory '{dirname}' does not exist", 400)
-        return jsonify({'files': list(map(File.serialize, fs.get_files(dirname))),
-                        'dirs': list(fs.get_subdirs(dirname))})
+        return jsonify(
+            {
+                "files": list(map(File.serialize, fs.get_files(dirname))),
+                "dirs": list(fs.get_subdirs(dirname)),
+            }
+        )
 
 
 @app.route("/file_created", methods=["POST"])
 def event():
-    file_id, ip, port = int(request.args["file_id"]), f"http://{request.remote_addr}", request.args["port"]
+    file_id, ip, port = (
+        int(request.args["file_id"]),
+        f"http://{request.remote_addr}",
+        request.args["port"],
+    )
     dnode = DataNode(ip, port)
     file: File = fs.get_file_by_id(file_id)
     if dnode not in data_nodes or file is None:
@@ -155,12 +163,12 @@ def ping_data_nodes():
             except ConnectionError as e:
                 app.logger.info(f"Datanode {node_address} synchronisation failed")
                 drop_datanode(d)
-        time.sleep(5)
+        time.sleep(50)
 
 
 if __name__ == "__main__":
-    create_log(app, 'master_node')
+    create_log(app, "master_node")
     ping_thread = threading.Thread(target=ping_data_nodes)
     ping_thread.start()
-    app.run(host='0.0.0.0', port=3030)
+    app.run(host="0.0.0.0", port=3030)
     ping_thread.join()

@@ -3,7 +3,6 @@ import os
 
 
 class File:
-
     def __init__(self, file_name, id, nodes, file_info):
         self.name = file_name
         self.id = id
@@ -11,19 +10,20 @@ class File:
         self.file_info = file_info
 
     def serialize(self):
-        return {'file_name': self.name,
-                'file_id': self.id,
-                'nodes': list(i.serialize() for i in self.nodes),
-                'file_info': self.file_info}
+        return {
+            "file_name": self.name,
+            "file_id": self.id,
+            "nodes": list(i.serialize() for i in self.nodes),
+            "file_info": self.file_info,
+        }
 
 
 class FileSystem:
-
     def __init__(self):
         # dict {file_path<a.txt>: {file_id: 0, nodes: [DataNode()], file_info {created_at:000} }
         self._file_mapper = {}
         # array of [{dir_path</a/b>:'vv',dir_info:  {created_at:000}}]
-        self._dirs = ['/']
+        self._dirs = ["/"]
         self._id = 0
 
     def add_file(self, filename) -> File:
@@ -33,8 +33,9 @@ class FileSystem:
             raise Exception(f"Directory '{os.path.dirname(filename)}' not found")
         else:
             self._id += 1
-            self._file_mapper[filename] = \
-                File(filename, self._id, [], {'created_at': time.time()})
+            self._file_mapper[filename] = File(
+                filename, self._id, [], {"created_at": time.time()}
+            )
             return self._file_mapper[filename]
 
     def get_file(self, filename) -> File:
@@ -52,7 +53,9 @@ class FileSystem:
         if self.get_file(dirname) is not None:
             raise ValueError(f"Already exists the file named '{dirname}'")
         if not self.dir_exists(os.path.dirname(dirname)):
-            raise ValueError(f"Upper directory '{os.path.dirname(dirname)}' does not exist")
+            raise ValueError(
+                f"Upper directory '{os.path.dirname(dirname)}' does not exist"
+            )
 
         self._dirs.append(dirname)
 
@@ -61,7 +64,11 @@ class FileSystem:
         return dirname in self._dirs
 
     def get_subdirs(self, dirname):
-        return [dir for dir in self._dirs if dir != dirname and os.path.dirname(dir) == dirname]
+        return [
+            dir
+            for dir in self._dirs
+            if dir != dirname and os.path.dirname(dir) == dirname
+        ]
 
     def file_in_directory(self, filename, dirname):
         return os.path.dirname(filename) == dirname
@@ -74,7 +81,11 @@ class FileSystem:
 
     def get_files(self, dirname):
         # O(n) getting list of files in dir
-        return [self._file_mapper[file] for file in self._file_mapper if self.file_in_directory(file, dirname)]
+        return [
+            self._file_mapper[file]
+            for file in self._file_mapper
+            if self.file_in_directory(file, dirname)
+        ]
 
     def move_file(self, file_name, destination):
         new_file_name = os.path.join(destination, os.path.basename(file_name))
