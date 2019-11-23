@@ -14,7 +14,8 @@ def show_help(*unused):
           '$ init                     : initialize the storage\n'
           '$ mv <file> <destination>  : move file to a given destination dir\n'
           '$ put <file> <destination> : put a local file to the remote filesystem\n'
-          '$ cd <destination>         : change remote pwd to a destination dir\n')
+          '$ cd <destination>         : change remote pwd to a destination dir\n'
+          '$ mkdir <directory>        : create a specified dir\n')
 
 
 def ping_master_node(*unused):
@@ -87,6 +88,18 @@ def change_dir(*args):
             set_pwd(destination)
 
 
+def make_dir(*args):
+    """
+    Change remote pwd to a destination folder
+    :param args: cd <destination>
+    :return:
+    """
+    if check_args('mkdir', args, required_operands=['destination']):
+        destination = make_abs(args[1])
+        resp = requests.post(os.path.join(MASTER_NODE, f'directory?name={destination}'))
+        check_response(resp)
+
+
 command_tree = {
     'help': show_help,
     'ping': ping_master_node,
@@ -94,6 +107,7 @@ command_tree = {
     'mv': move_file,
     'put': put_file,
     'cd': change_dir,
+    'mkdir': make_dir,
 }
 
 if __name__ == "__main__":
