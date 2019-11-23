@@ -38,9 +38,11 @@ def move_file(*args):
         'file',
         'destination'
     ]):
+        filename = make_abs(args[1])
+        destination = make_abs(args[2])
         # Request to put a file to a new destination
         # Request structure: /file?filename=<name>&destination=<dest>
-        resp = requests.put(os.path.join(MASTER_NODE, f'file?filename={args[1]}&destination={make_abs(args[2])}'))
+        resp = requests.put(os.path.join(MASTER_NODE, f'file?filename={filename}&destination={destination}'))
         check_response(resp)
 
 
