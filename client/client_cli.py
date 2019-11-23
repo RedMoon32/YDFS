@@ -19,14 +19,12 @@ def show_help(*unused):
 
 def ping_master_node(*unused):
     """Check that master_node is alive"""
-    del unused
     resp = requests.get(os.path.join(MASTER_NODE, 'ping'))
     check_response(resp)
 
 
 def initialize_filesystem(*unused):
     """Clear filesystem, prepare it for work"""
-    del unused
     resp = requests.delete(os.path.join(MASTER_NODE, 'filesystem'))
     check_response(resp)
 
