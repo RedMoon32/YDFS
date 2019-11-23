@@ -54,21 +54,22 @@ def put_file(*args):
         'destination'
     ]) == 0:
         filename = args[1]
-        destination = args[2]
-        path = join_path(filename, destination)
-
-        # Request to store a file in the filesystem
-        # Request structure: /file?filename=<path>
-        resp = requests.post(os.path.join(MASTER_NODE, f'file?filename={path}'))
         data = read_file(filename)
-        if check_response(resp) == 0:
-            content = resp.json()
-            nodes = content['datanodes']  # Available storage datanodes
-            file = content['file']  # View of a file from the perspective of a masternode
-            if data:
-                # Request to store a file in the storage
-                # Request structure: /file?filename=<filename>
-                request_datanodes(nodes, f'file?filename={file["file_id"]}', 'POST', data=data)
+        if data:
+            destination = args[2]
+            path = join_path(filename, destination)
+
+            # Request to store a file in the filesystem
+            # Request structure: /file?filename=<path>
+            resp = requests.post(os.path.join(MASTER_NODE, f'file?filename={path}'))
+            if check_response(resp) == 0:
+                content = resp.json()
+                nodes = content['datanodes']  # Available storage datanodes
+                file = content['file']  # View of a file from the perspective of a masternode
+                if data:
+                    # Request to store a file in the storage
+                    # Request structure: /file?filename=<filename>
+                    request_datanodes(nodes, f'file?filename={file["file_id"]}', 'POST', data=data)
 
 
 command_tree = {
