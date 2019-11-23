@@ -1,3 +1,4 @@
+import pook
 import pytest
 import os
 
@@ -7,7 +8,7 @@ from storage.data_node import app as data_node, FILE_STORE
 
 @pytest.fixture
 def client():
-    data_node.config['TESTING'] = True
+    data_node.config["TESTING"] = True
 
     with data_node.test_client() as client:
         yield client
@@ -21,9 +22,9 @@ def init_storage_test():
 def test_filesystem_delete(client):
     init_storage_test()
 
-    os.mkdir(os.path.join(FILE_STORE, 'test'))
+    os.mkdir(os.path.join(FILE_STORE, "test"))
     assert len(os.listdir(FILE_STORE)) == 1
-    client.delete('filesystem')
+    client.delete("filesystem")
     assert os.path.exists(FILE_STORE)
     assert len(os.listdir(FILE_STORE)) == 0
 
@@ -32,7 +33,7 @@ def test_file_get(client):
     init_storage_test()
 
     fpath = os.path.join(FILE_STORE, "1")
-    f = open(fpath, 'w')
+    f = open(fpath, "w")
     data = "AAAAAAAAAABBBBBBBBBBBCCCCCCCCCCCCCCCCCCC"
     f.write(data)
     f.close()
@@ -47,8 +48,12 @@ def test_file_get(client):
     os.remove(fpath)
 
 
+@pook.on
 def test_file_put(client):
     init_storage_test()
+    mock = pook.post(
+        "http://localhost:3030/file_created?file_id=1&port=2020", reply=200
+    )
 
     assert not os.path.exists(os.path.join(FILE_STORE, "1"))
     data = "AAAAAAAAAAABBBBBBBBBBCCCCCCCCCCCCCC"

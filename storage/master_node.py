@@ -6,7 +6,7 @@ import requests
 import os
 
 from urllib3 import HTTPConnectionPool
-
+from requests.exceptions import ConnectionError
 from storage.data_node_utils import DataNode
 from storage.file_system import FileSystem, File
 from storage.utils import create_log
@@ -68,8 +68,8 @@ def ping():
 
 @app.route("/datanode", methods=["POST"])
 def datanode():
-    ip, port = request.args["ip"], request.args["port"]
-    new_datanode = DataNode(ip, port)
+    host, port = request.args["host"], request.args["port"]
+    new_datanode = DataNode(host, port)
     if new_datanode not in data_nodes:
         data_nodes.append(new_datanode)
         return Response(status=201)
@@ -82,7 +82,7 @@ def filesystem():
     if request.method == "DELETE":
         fs.__init__()
         for d in data_nodes:
-            request_datanode(d, 'filesystem', request.method)
+            request_datanode(d, "filesystem", request.method)
         if len(data_nodes) > 0:
             return Response("Storage is initialized and ready", 200)
         else:
@@ -102,7 +102,7 @@ def file():
 
     elif request.method == "POST":
         file: File = fs.add_file(filename)
-        return jsonify({'datanodes': choose_datanodes(), 'file': file.serialize()})
+        return jsonify({"datanodes": choose_datanodes(), "file": file.serialize()})
 
     elif request.method == "PUT":
         destination = request.args["destination"]
@@ -127,8 +127,28 @@ def directory():
     elif request.method == "GET":
         if not fs.dir_exists(dirname):
             return Response(f"Directory '{dirname}' does not exist", 400)
-        return jsonify({'files': list(map(File.serialize, fs.get_files(dirname))),
-                        'dirs': list(fs.get_subdirs(dirname))})
+        return jsonify(
+            {
+                "files": list(map(File.serialize, fs.get_files(dirname))),
+                "dirs": list(fs.get_subdirs(dirname)),
+            }
+        )
+
+
+@app.route("/file_created", methods=["POST"])
+def event():
+    file_id, ip, port = (
+        int(request.args["file_id"]),
+        f"http://{request.remote_addr}",
+        request.args["port"],
+    )
+    dnode = DataNode(ip, port)
+    file: File = fs.get_file_by_id(file_id)
+    if dnode not in data_nodes or file is None:
+        return Response(status=404)
+    else:
+        file.nodes.append(dnode)
+        return Response(status=200)
 
 
 def ping_data_nodes():
@@ -140,14 +160,15 @@ def ping_data_nodes():
             try:
                 resp = requests.get(os.path.join(node_address, "ping"))
                 app.logger.info(f"Success - datanode {node_address} is alive")
-            except HTTPConnectionPool:
+            except ConnectionError as e:
                 app.logger.info(f"Datanode {node_address} synchronisation failed")
-        time.sleep(5)
+                drop_datanode(d)
+        time.sleep(50)
 
 
 if __name__ == "__main__":
-    create_log(app, 'master_node')
+    create_log(app, "master_node")
     ping_thread = threading.Thread(target=ping_data_nodes)
     ping_thread.start()
-    app.run(host='0.0.0.0', port=3030)
+    app.run(host="0.0.0.0", port=3030)
     ping_thread.join()

@@ -4,7 +4,7 @@ from flask import Response
 from os.path import isabs, join, normpath
 
 MAX_REQUEST_COUNT = 3
-pwd = '/'
+pwd = "/"
 
 
 def check_response(resp):
@@ -25,38 +25,44 @@ def check_args(command: str, args: tuple, required_operands: list):
     :return:
     """
     if len(args) < 2:
-        print(f'{command}: missing {required_operands[0]} operand')
+        print(f"{command}: missing {required_operands[0]} operand")
         return False
     for i in range(1, len(required_operands)):
         if len(args) < i + 2:
-            print(f"{command}: missing {required_operands[i]} operand after '{args[i]}'")
+            print(
+                f"{command}: missing {required_operands[i]} operand after '{args[i]}'"
+            )
             return False
     # Check if extra operands are present
     if len(args) - 1 > len(required_operands):
-        print(f'{command}: extra operands are present, expected [{len(required_operands)}] - got [{len(args) - 1}]')
+        print(
+            f"{command}: extra operands are present, expected [{len(required_operands)}] - got [{len(args) - 1}]"
+        )
         return False
     return True
 
 
 def request_datanodes(datanodes, command, method, data=None):
     resp = None
-    for datanode in datanodes:
-        node_address = f"{datanode['ip']}:{datanode['port']}"
-        for try_counter in range(MAX_REQUEST_COUNT):
-            if method == "GET":
-                resp = requests.get(join(node_address, command), data=data)
-            elif method == "POST":
-                resp = requests.post(join(node_address, command), data=data)
-            elif method == "DELETE":
-                resp = requests.delete(join(node_address, command), data=data)
-            if resp.status_code == 200:
-                return Response(status=200)
-    return resp
+    for try_counter in range(MAX_REQUEST_COUNT):
+        try:
+            for datanode in datanodes:
+                node_address = f"{datanode['ip']}:{datanode['port']}"
+                if method == "GET":
+                    resp = requests.get(join(node_address, command), data=data)
+                elif method == "POST":
+                    resp = requests.post(join(node_address, command), data=data)
+                elif method == "DELETE":
+                    resp = requests.delete(join(node_address, command), data=data)
+                return resp
+        except Exception:
+            pass
+    print("Error reading from data-nodes")
 
 
-def read_file(path):
+def os_read_file(path):
     try:
-        return open(path, 'rb').read()
+        return open(path, "rb").read()
     except OSError as e:
         print(e)
         return None

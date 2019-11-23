@@ -8,6 +8,7 @@ app = Flask(__name__)
 
 PORT = 2020
 FILE_STORE = "./data"
+MASTER_NODE = "http://localhost:3030/"
 
 
 # @TODO
@@ -19,7 +20,7 @@ def ping():
     return "Hello, Data Node is Alive!"
 
 
-@app.route("/filesystem", methods=["GET", "DELETE"])
+@app.route("/filesystem", methods=["DELETE"])
 def filesystem():
     if request.method == "DELETE":
         try:
@@ -35,24 +36,41 @@ def filesystem():
 def file():
     filename = request.args["filename"]
 
-    if '/' in filename:
-        return Response('/ are not allowed in file name!', 400)
+    if "/" in filename:
+        return Response("/ are not allowed in file name!", 400)
 
     fpath = os.path.join(FILE_STORE, filename)
 
     if request.method == "GET":
         if not os.path.exists(fpath):
             return Response(f"File not found", 404)
-        f = open(fpath, 'r')
+        f = open(fpath, "r")
         content = f.read()
-        return Response(content, 200, mimetype='text/plain')
+
+        return Response(content, 200, mimetype="text/plain")
 
     elif request.method == "POST":
         try:
             if os.path.exists(fpath):
                 return Response(f"File already exists", 400)
-            f = open(fpath, 'wb')
+
+            try:
+                # say master that new file was created on datanode
+                resp = requests.post(
+                    os.path.join(
+                        MASTER_NODE, f"file_created?file_id={filename}&port={PORT}"
+                    )
+                )
+                if resp.status_code != 200:
+                    return Response(status=404)
+            except:
+                return Response(
+                    "Error while sending approving request to master node", status=400
+                )
+
+            f = open(fpath, "wb")
             f.write(request.data)
+
             return Response(status=201)
 
         except Exception as e:
@@ -67,12 +85,12 @@ def file():
 
 
 def init_node():
-    create_log(app, 'data_node')
+    create_log(app, "data_node")
     if not os.path.exists(FILE_STORE):
         os.mkdir(FILE_STORE)
     # run master node first
-    requests.post("http://localhost:3030/datanode?ip=http://127.0.0.1&port=2020")
-    app.run(host='0.0.0.0', port=PORT)
+    requests.post(os.path.join(MASTER_NODE, "datanode?ip=http://127.0.0.1&port=2020"))
+    app.run(host="0.0.0.0", port=PORT)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ from storage.file_system import FileSystem, File
 
 @pytest.fixture
 def client():
-    master_node.config['TESTING'] = True
+    master_node.config["TESTING"] = True
 
     with master_node.test_client() as client:
         yield client
@@ -34,8 +34,7 @@ def test_file_location_to_store(client):
     assert resp.status_code == 201
 
     resp = client.post("/file?filename=a.txt")
-    assert resp.json['datanodes'] == [{"ip": "101.101.101.101",
-                                       "port": 2000}]
+    assert resp.json["datanodes"] == [{"ip": "101.101.101.101", "port": 2000}]
 
     resp = client.post("/file?filename=/b/a.txt")
     assert resp.status_code == 400
@@ -52,14 +51,15 @@ def test_file_node_locations(client):
     clean()
 
     storage.master_node.fs._file_mapper = {
-        "file1": File("file1", 1, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
-                      {}),
+        "file1": File(
+            "file1", 1, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")], {}
+        ),
     }
     resp = client.get("/file?filename=file1")
-    assert resp.json['nodes'] == [{"ip": "127.0.0.1",
-                                   "port": 333},
-                                  {"ip": "127.0.0.2",
-                                   "port": 333}]
+    assert resp.json["nodes"] == [
+        {"ip": "127.0.0.1", "port": 333},
+        {"ip": "127.0.0.2", "port": 333},
+    ]
 
 
 def test_mkdir(client):
@@ -90,14 +90,18 @@ def test_get_directory(client):
 
     storage.master_node.fs._dirs = ["/", "/a", "/b", "/a/c"]
     storage.master_node.fs._file_mapper = {
-        "/a/a1.txt": File("1", 111, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
-                          {}),
-        "/a/c/a2.txt": File("2", 222, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
-                            {}),
-        "/r1.txt": File("3", 333, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
-                        {}),
-        "/r2.txt": File("4", 444, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")],
-                        {}),
+        "/a/a1.txt": File(
+            "1", 111, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")], {}
+        ),
+        "/a/c/a2.txt": File(
+            "2", 222, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")], {}
+        ),
+        "/r1.txt": File(
+            "3", 333, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")], {}
+        ),
+        "/r2.txt": File(
+            "4", 444, [DataNode("127.0.0.1", "333"), DataNode("127.0.0.2", "333")], {}
+        ),
     }
 
     resp = client.get("directory?name=/a/c")
@@ -132,7 +136,7 @@ def test_file_move(client):
 
 
 def test_filesystem_delete(client):
-    client.delete('filesystem')
+    client.delete("filesystem")
     assert storage.master_node.fs._id == 0
-    assert storage.master_node.fs._dirs == ['/']
+    assert storage.master_node.fs._dirs == ["/"]
     assert storage.master_node.fs._file_mapper == {}
