@@ -1,4 +1,5 @@
 import requests
+import os
 from flask import Response
 from os.path import isabs, join, normpath
 
@@ -7,7 +8,7 @@ pwd = '/'
 
 
 def check_response(resp):
-    if resp.status_code == 200:
+    if resp.status_code // 100 == 2:  # status codes 2xx
         print(resp.content.decode())
         return True
     else:
@@ -15,7 +16,7 @@ def check_response(resp):
         return False
 
 
-def check_args(command: str, args: list, required_operands: list):
+def check_args(command: str, args: tuple, required_operands: list):
     """
     Check that number of arguments is correct.
     :param command: CLI command to check. Used for user prompt.
@@ -83,3 +84,9 @@ def make_abs(path):
         return normpath(path)
     else:
         return normpath(join(pwd, path))
+
+
+def set_pwd(path):
+    """Setter for a pending working directory"""
+    global pwd
+    pwd = path

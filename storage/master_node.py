@@ -159,11 +159,11 @@ def directory():
         if not fs.dir_exists(os.path.dirname(dirname)):
             return Response("Upper not exists", 400)
         fs.add_directory(dirname)
-        return Response("Directory created", 201)
+        return Response(f"Directory '{dirname}' created", 201)
 
     elif request.method == "GET":
         if not fs.dir_exists(dirname):
-            return Response("Directory does not exists", 400)
+            return Response(f"Directory '{dirname}' does not exist", 400)
         return jsonify({'files': list(map(File.serialize, fs.get_files(dirname))),
                         'dirs': list(fs.get_subdirs(dirname))})
 
