@@ -7,5 +7,4 @@ class DataNode:
         return self.ip == other.ip and self.port == other.port
 
     def serialize(self):
-        return {"ip": self.ip,
-                "port": self.port}
+        return {"ip": self.ip, "port": self.port}
