@@ -16,7 +16,7 @@ def show_help(*unused):
         "$ put <file> <destination> : put a local file to the remote filesystem\n"
         "$ cd <destination>         : change remote pwd to a destination dir\n"
         "$ mkdir <directory>        : create a specified dir\n"
-        "$ get <file> <local_destination> :put a remote file to local filesystem"
+        "$ get <file> <destination> : put a remote file to local filesystem"
     )
 
 
@@ -111,14 +111,12 @@ def read_file(*args):
         fpath = make_abs(args[1])
         dest = args[2]
         resp = requests.get(os.path.join(MASTER_NODE, f"file?filename={fpath}"))
-        if resp.status_code != 200:
-            print(resp.content.decode())
-        else:
+        if check_response(resp):
             data = resp.json()
             resp = request_datanodes(
                 data["nodes"], f"file?filename={data['file_id']}", "GET"
             )
-            if resp.status_code == 200:
+            if check_response(resp):
                 print(f"=============\nFile {fpath} successfully retrieved")
                 print(f"Saving to {dest}")
                 try:
@@ -127,8 +125,6 @@ def read_file(*args):
                     print("Successfully saved")
                 except:
                     print("Error while saving on local filesystem")
-            else:
-                print(f"Error reading from dataNode", resp.content.decode())
 
 
 command_tree = {
@@ -146,7 +142,7 @@ if __name__ == "__main__":
     print("Client is working , but run Master Node first")
     while True:
         print("Enter the command(type '$ help' to view the commands' description)")
-        args = input("$ ").split()
+        args = input("$").split()
         if len(args) == 0:
             continue
         try:
