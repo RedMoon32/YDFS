@@ -100,6 +100,25 @@ def test_file_location_to_store(client):
     clean()
 
 
+def test_file_location_to_store(client):
+    resp = client.post("/datanode?ip=101.101.101.101&port=2000")
+    assert resp.status_code == 201
+
+    resp = client.post("/file?filename=a.txt")
+    assert resp.json == {"ip": "101.101.101.101",
+                         "port": 2000}
+
+    resp = client.post("/file?filename=/b/a.txt")
+    assert resp.status_code == 400
+
+    storage.master_node.fs._dirs.append("/b")
+
+    resp = client.post("/file?filename=/b/a.txt")
+    assert resp.status_code == 200
+
+    clean()
+
+
 def test_filesystem_delete(client):
     client.delete('filesystem')
     assert storage.master_node.fs._id == 0
