@@ -94,6 +94,21 @@ def file():
                 return Response(f"File already exists", 400)
             if not os.path.exists(fpath):
                 return Response(f"File doesnt exists", 404)
+
+            try:
+                # say master that new file was created on datanode
+                resp = requests.post(
+                    os.path.join(
+                        MASTER_NODE, f"file_created?file_id={target}&port={PORT}"
+                    )
+                )
+                if resp.status_code != 200:
+                    return Response("Master doesn't know about copy", status=404)
+            except:
+                return Response(
+                    "Error while sending approving request to master node", status=400
+                )
+
             shutil.copy(fpath, target_path)
             return Response(status=201)
         except Exception as e:

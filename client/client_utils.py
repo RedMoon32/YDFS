@@ -21,7 +21,7 @@ def check_args(command: str, args: tuple, required_operands: list):
     Check that number of arguments is correct.
     :param command: CLI command to check. Used for user prompt.
     :param args: received arguments
-    :param missing_operands:
+    :param required_operands:
     :return:
     """
     if len(args) < 2:

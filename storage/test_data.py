@@ -78,9 +78,21 @@ def test_file_delete(client):
     assert client.delete("/file?filename=1").status_code == 200
     assert not os.path.exists(fpath)
 
-
+@pook.on
 def test_file_copy(client):
     init_storage_test()
+    mock = pook.post(
+        "http://localhost:3030/file_created?file_id=1&port=2020", reply=200
+    )
+    mock = pook.post(
+        "http://localhost:3030/file_created?file_id=2&port=2020", reply=200
+    )
+    mock = pook.post(
+        "http://localhost:3030/file_created?file_id=3&port=2020", reply=404
+    )
+    mock = pook.post(
+        "http://localhost:3030/file_created?file_id=4&port=2020", reply=404
+    )
     data = "AAAAAAAAAAABBBBBBBBBBCCCCCCCCCCCCCC"
     client.post("/file?filename=1", data=data)
 
@@ -94,7 +106,7 @@ def test_file_copy(client):
     assert resp.status_code == 404
 
     resp = client.put("/file?filename=2&target=4")
-    assert resp.status_code == 201
+    assert resp.status_code == 404
 
     resp = client.put("/file?filename=1&target=13/37")
     assert resp.status_code == 400
