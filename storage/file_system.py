@@ -58,3 +58,9 @@ class FileSystem:
             self._file_mapper[new_file_name].name = new_file_name
         else:
             raise FileNotFoundError
+
+    def copy_file(self, source_file: File, target) -> File:
+        self._id += 1
+        self._file_mapper[target] = \
+            File(target, self._id, source_file.nodes.copy(), {'created_at': time.time()})
+        return self._file_mapper[target]

@@ -40,7 +40,7 @@ def filesystem():
             return Response(f"Error clearing storage", 400)
 
 
-@app.route("/file", methods=["GET", "POST", "DELETE"])
+@app.route("/file", methods=["GET", "POST", "DELETE", "PUT"])
 def file():
     filename = request.args["filename"]
 
@@ -73,6 +73,22 @@ def file():
         else:
             os.remove(fpath)
             return Response(status=200)
+
+    # this is for coping file
+    elif request.method == "PUT":
+        try:
+            target = request.args["target"]
+            if '/' in target:
+                return Response('/ are not allowed in file name!', 400)
+            target_path = os.path.join(FILE_STORE, target)
+            if os.path.exists(target_path):
+                return Response(f"File already exists", 400)
+            if not os.path.exists(fpath):
+                return Response(f"File doesnt exists", 404)
+            shutil.copy(fpath, target_path)
+            return Response(status=201)
+        except Exception as e:
+            return Response(f"Error opening file ", 400)
 
 
 def init_node():

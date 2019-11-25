@@ -84,13 +84,43 @@ def file():
         return jsonify(choice(data_nodes).serialize())
 
     elif request.method == "PUT":
-        destination = request.args["destination"]
-        new_file_name = os.path.join(destination, os.path.basename(filename))
-        if fs.dir_exists(destination) and not fs.file_exists(new_file_name):
-            fs.rename_file(filename, new_file_name)
-            return Response(status=200)
+        if request.args["op"] == "mv":
+            if not file:
+                return Response("No such file", 404)
+            destination = request.args["destination"]
+            new_file_name = os.path.join(destination, os.path.basename(filename))
+            if fs.dir_exists(destination) and not fs.file_exists(new_file_name):
+                fs.rename_file(filename, new_file_name)
+                return Response(status=200)
+            else:
+                return Response("Output folder path does not exists", 404)
+        elif request.args["op"] == "cp":
+            source = filename
+            target = request.args["target"]
+            source_file: File = file
+            if not source_file:
+                return Response("No such source file", 404)
+            target_file: File = fs.get_file(target)
+            if not target_file:
+                return Response("Target file with this name already exists", 400)
+            if not fs.dir_exists(os.path.dirname(target)):
+                return Response("Target directory doesn't exists", 404)
+            target_file = fs.copy_file(source_file, target)
+            for node in target_file.nodes:
+                node_address = f"{node.ip}:{node.port}"
+                app.logger.info(f"Synchronisation with datanode {node_address}")
+                resp = requests.put(os.path.join(node_address, f"file?filename={source_file.id}&target={target_file.id}"))
+                if resp.status_code == 201:
+                    app.logger.info(f"Success - datanode {node_address} copied file")
+                else:
+                    app.logger.info(f"Datanode {node_address} failed to copy file")
+                    target_file.nodes.remove(node_address)
+            if not target_file.nodes:
+                return Response("All datanodes failed to copy file", 400)
+            return Response(status=201)
         else:
-            return Response("Output folder path does not exists", 404)
+            return Response("Wrong operation code, request should include 'op=<operation_code>'", 400)
+
 
 
 def ping_data_nodes():

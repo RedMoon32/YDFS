@@ -70,3 +70,27 @@ def test_file_delete(client):
 
     assert client.delete("/file?filename=1").status_code == 200
     assert not os.path.exists(fpath)
+
+
+def test_file_copy(client):
+    init_storage_test()
+    data = "AAAAAAAAAAABBBBBBBBBBCCCCCCCCCCCCCC"
+    client.post("/file?filename=1", data=data)
+
+    resp = client.put("/file?filename=1&target=2")
+    assert resp.status_code == 201
+
+    resp = client.put("/file?filename=1&target=2")
+    assert resp.status_code == 400
+
+    resp = client.put("/file?filename=3&target=4")
+    assert resp.status_code == 404
+
+    resp = client.put("/file?filename=2&target=4")
+    assert resp.status_code == 201
+
+    resp = client.put("/file?filename=1&target=13/37")
+    assert resp.status_code == 400
+    client.delete("/file?filename=1")
+    client.delete("/file?filename=2")
+    client.delete("/file?filename=4")

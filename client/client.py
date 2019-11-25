@@ -44,10 +44,22 @@ def move_file(args):
         print(f"mv: missing destination file operand after '{args[1]}'")
         return
     # Request to put a file to a new destination
-    # Request structure: /file?filename=<name>&destination=<dest>
-    resp = requests.put(os.path.join(MASTER_NODE, f'file?filename={args[1]}&destination={args[2]}'))
+    # Request structure: /file?op=<operation>&filename=<name>&destination=<dest>
+    resp = requests.put(os.path.join(MASTER_NODE, f'file?op=mv&filename={args[1]}&destination={args[2]}'))
     check_response(resp)
 
+
+# Copy a file to a destination folder
+# -mv <source_file> <target_file>
+def copy_file(args):
+    if len(args) != 3:
+        print("Wrong arguments, copy command should be in these format:\n "
+              "\t-mv <source_file> <target_file>")
+        return
+    # Request to put a file to a new destination
+    # Request structure: /file?op=<operation>&source=<source_file>&target=<target_file>
+    resp = requests.put(os.path.join(MASTER_NODE, f'file?operation=cp&filename={args[1]}&target={args[2]}'))
+    check_response(resp)
 
 if __name__ == "__main__":
     print("Client is working , but run Master Node first")
@@ -62,3 +74,5 @@ if __name__ == "__main__":
             initialize_filesystem()
         elif args[0] == 'mv':
             move_file(args)
+        elif args[0] == 'cp':
+            copy_file(args)
