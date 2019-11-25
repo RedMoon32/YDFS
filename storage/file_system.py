@@ -113,6 +113,8 @@ class FileSystem:
             self._file_mapper.pop(file_name)
 
     def remove_dir(self, dirname):
+        if dirname not in self._dirs:
+            raise FileNotFoundError("Directory not found")
         self._dirs.remove(dirname)
         dirname = dirname + "/" if dirname[-1] != "/" else dirname
         files = []

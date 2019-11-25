@@ -241,8 +241,8 @@ def test_delete_dir(client):
     assert resp.status_code == 200
     assert storage.master_node.fs._dirs == ["/", "/b"]
 
-    assert len(storage.master_node.fs._file_mapper.keys()) == 3
     newfs = storage.master_node.fs._file_mapper.keys()
+    assert len(newfs) == 3
     assert "/r1.txt" in newfs
     assert "/r2.txt" in newfs
     assert "/b/a2.txt" in newfs
