@@ -127,6 +127,16 @@ def read_file(*args):
                     print("Error while saving on local filesystem")
 
 
+def remove_file_or_dir(*args):
+    if check_args("rm", args, ["file_or_dir"]):
+        fpath = make_abs(args[1])
+        pass
+        # get directory info {files:[], dirs:[]} via get /directory?name={}
+        # if file call on master delete /file?filename
+        # if dir 1) check if not empty via get /directory?name={} 2)
+        # call delete /directory?name={}
+
+
 command_tree = {
     "help": show_help,
     "ping": ping_master_node,
@@ -136,6 +146,7 @@ command_tree = {
     "cd": change_dir,
     "mkdir": make_dir,
     "get": read_file,
+    "rm": remove_file_or_dir
 }
 
 if __name__ == "__main__":

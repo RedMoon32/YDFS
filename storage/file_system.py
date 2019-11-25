@@ -17,6 +17,10 @@ class File:
             "file_info": self.file_info,
         }
 
+    def __eq__(self, other):
+        return self.name == other.name \
+               and self.id == other.id and self.file_info == other.file_info
+
 
 class FileSystem:
     def __init__(self):
@@ -101,3 +105,22 @@ class FileSystem:
             self._file_mapper[new_file_name].name = new_file_name
         else:
             raise FileNotFoundError("No file found")
+
+    def remove_file(self, file_name):
+        if not file_name in self._file_mapper:
+            raise FileNotFoundError("File not found")
+        else:
+            self._file_mapper.pop(file_name)
+
+    def remove_dir(self, dirname):
+        self._dirs.remove(dirname)
+        dirname = dirname + "/" if dirname[-1] != "/" else dirname
+        files = []
+        for file in self._file_mapper.values():
+            if file.name.startswith(dirname):
+                # list of files which must be deleted from datanodes
+                files.append(file)
+        for dir in self._dirs[:]:
+            if dir.startswith(dirname):
+                self._dirs.remove(dir)
+        return files
