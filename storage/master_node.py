@@ -5,7 +5,6 @@ import time
 import requests
 import os
 
-from urllib3 import HTTPConnectionPool
 from requests.exceptions import ConnectionError
 from storage.data_node_utils import DataNode
 from storage.file_system import FileSystem, File
@@ -41,13 +40,11 @@ def request_datanode(datanode, command, method):
                 resp = requests.post(os.path.join(node_address, command))
             elif method == "DELETE":
                 resp = requests.delete(os.path.join(node_address, command))
-            if resp.status_code == 200:
-                return Response(status=200)
-        except HTTPConnectionPool:
-            pass
-    # drop datanode if it does not respond
+            return resp
+        except Exception as e:
+            print(str(e))
     drop_datanode(datanode)
-    return resp
+    return None
 
 
 def drop_datanode(datanode):
@@ -68,7 +65,7 @@ def ping():
 
 @app.route("/datanode", methods=["POST"])
 def datanode():
-    host, port = request.args["host"], request.args["port"]
+    host, port = f"http://{request.remote_addr}", request.args["port"]
     new_datanode = DataNode(host, port)
     if new_datanode not in data_nodes:
         data_nodes.append(new_datanode)
@@ -89,14 +86,14 @@ def filesystem():
             return Response("Storage is unavailable", 400)
 
 
-@app.route("/file", methods=["POST", "GET", "PUT"])
+@app.route("/file", methods=["POST", "GET", "PUT", "DELETE"])
 def file():
     filename = request.args["filename"]
     file: File = fs.get_file(filename)
 
     if request.method == "GET":
         if not file:
-            return Response(status=404)
+            return Response("File not found", status=404)
         else:
             return jsonify(file.serialize())
 
@@ -109,8 +106,17 @@ def file():
         fs.move_file(filename, destination)
         return Response(f"File '{filename}' was moved to '{destination}'", 200)
 
+    elif request.method == "DELETE":
+        if not file:
+            return Response(f"File {filename} not found", status=404)
+        else:
+            for dnode in file.nodes:
+                request_datanode(dnode, f"file?filename={file.id}", "DELETE")
+            fs.remove_file(filename)
+            return Response(f"File {filename} was deleted", 200)
 
-@app.route("/directory", methods=["GET", "POST"])
+
+@app.route("/directory", methods=["GET", "POST", "DELETE"])
 def directory():
     dirname = request.args["name"]
 
@@ -126,13 +132,22 @@ def directory():
 
     elif request.method == "GET":
         if not fs.dir_exists(dirname):
-            return Response(f"Directory '{dirname}' does not exist", 400)
+            return Response(f"Directory '{dirname}' does not exist", 404)
         return jsonify(
             {
                 "files": list(map(File.serialize, fs.get_files(dirname))),
                 "dirs": list(fs.get_subdirs(dirname)),
             }
         )
+    elif request.method == "DELETE":
+        if not fs.dir_exists(dirname):
+            return Response(f"Directory '{dirname}' does not exist", 404)
+        rm_list = fs.remove_dir(dirname)
+        for file in rm_list:
+            for dnode in file.nodes:
+                request_datanode(dnode, f"file?filename={file.id}", "DELETE")
+            fs.remove_file(file.name)
+        return Response(f"Directory {dirname} and all its sub-folders and files was deleted", status=200)
 
 
 @app.route("/file_created", methods=["POST"])
