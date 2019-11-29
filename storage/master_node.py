@@ -114,12 +114,12 @@ def file():
 
     elif request.method == "DELETE":
         if not file:
-            return Response(f"File {filename} not found", status=404)
+            return Response(f"File '{filename}' not found", status=404)
         else:
             for dnode in file.nodes:
                 request_datanode(dnode, f"file?filename={file.id}", "DELETE")
             fs.remove_file(filename)
-            return Response(f"File {filename} was deleted", 200)
+            return Response(f"File '{filename}' was deleted", 200)
 
 
 @app.route("/directory", methods=["GET", "POST", "DELETE"])
@@ -148,13 +148,15 @@ def directory():
     elif request.method == "DELETE":
         if not fs.dir_exists(dirname):
             return Response(f"Directory '{dirname}' does not exist", 404)
+        if dirname == '/':
+            return Response("Cannot remove root directory", 400)
         rm_list = fs.remove_dir(dirname)
         for file in rm_list:
             for dnode in file.nodes:
                 request_datanode(dnode, f"file?filename={file.id}", "DELETE")
             fs.remove_file(file.name)
         return Response(
-            f"Directory {dirname} and all its sub-folders and files was deleted",
+            f"Directory '{dirname}' and all its sub-folders and files were deleted",
             status=200,
         )
 
@@ -198,7 +200,7 @@ def ping_data_nodes():
                         file.nodes.remove(cur_node)
 
             except ConnectionError as e:
-                app.logger.info(f"Datanode {node_address} synchronisation failed")
+                app.logger.info(f"Datanode '{node_address}' synchronisation failed")
                 drop_datanode(cur_node)
         time.sleep(5)
 
