@@ -8,9 +8,11 @@ pwd = "/"
 
 
 def pretty_print(data):
+    """Parse json string into pandas dataframe if possible"""
     try:
         data = json.loads(data)
         for d in data:
+            # Directories are stored just as list, not dictionary, hence can not be parsed in a usual way
             if d == "dirs":
                 print("dirs :", data[d])
             else:
@@ -25,6 +27,12 @@ def pretty_print(data):
 
 
 def check_response(resp, pretty_print_enabled=False):
+    """
+    Check that response is ok and print a result to user
+    :param resp: response to check
+    :param pretty_print_enabled: flag that orders to parse json data from a response into a pretty pandas dataframe
+    :return:
+    """
     if resp.status_code // 100 == 2:  # status codes 2xx
         if pretty_print_enabled:
             pretty_print(resp.content.decode())
@@ -32,6 +40,7 @@ def check_response(resp, pretty_print_enabled=False):
             print(resp.content.decode())
         return True
     else:
+        # Error messages with raw response content are not pretty
         if not pretty_print_enabled:
             print("Error:", resp.content.decode())
         return False
