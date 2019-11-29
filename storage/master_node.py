@@ -5,7 +5,6 @@ import time
 import requests
 import os
 
-from urllib3 import HTTPConnectionPool
 from requests.exceptions import ConnectionError
 from storage.data_node_utils import DataNode
 from storage.file_system import FileSystem, File
@@ -21,6 +20,15 @@ MAX_REQUEST_COUNT = 3
 LOAD_FACTOR = 0.5  # fraction of datanodes to provide to a client at once
 
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    status_code = 400
+    if isinstance(e, FileNotFoundError):
+        status_code = 404
+
+    return Response(str(e), status=status_code)
+
+
 def request_datanode(datanode, command, method):
     node_address = f"{datanode.ip}:{datanode.port}"
     resp = None
@@ -32,22 +40,26 @@ def request_datanode(datanode, command, method):
                 resp = requests.post(os.path.join(node_address, command))
             elif method == "DELETE":
                 resp = requests.delete(os.path.join(node_address, command))
-            if resp.status_code == 200:
-                return Response(status=200)
-        except HTTPConnectionPool:
-            pass
-    # drop datanode if it does not respond
+            return resp
+        except Exception as e:
+            print(f"DataNode {node_address} connection failed")
     drop_datanode(datanode)
-    return resp
+    return None
 
 
 def drop_datanode(datanode):
+    for file in fs.get_all_files():
+        if datanode in file.nodes:
+            file.nodes.remove(datanode)
+            app.logger.info(
+                f"Removing file {file.name} in database from {datanode.ip}:{datanode.port}"
+            )
     data_nodes.remove(datanode)
     app.logger.info(f"Removed not responding datanode {datanode.ip}:{datanode.port}")
 
 
 def choose_datanodes():
-    k = ceil(len(data_nodes) * LOAD_FACTOR) # how much data_nodes to choose
+    k = ceil(len(data_nodes) * LOAD_FACTOR)  # how much data_nodes to choose
     # Serialize each randomly chosen datanode and return a list of such datanodes
     return list(map(lambda node: node.serialize(), choices(data_nodes, k=k)))
 
@@ -59,7 +71,7 @@ def ping():
 
 @app.route("/datanode", methods=["POST"])
 def datanode():
-    host, port = request.args["host"], request.args["port"]
+    host, port = f"http://{request.remote_addr}", request.args["port"]
     new_datanode = DataNode(host, port)
     if new_datanode not in data_nodes:
         data_nodes.append(new_datanode)
@@ -73,31 +85,27 @@ def filesystem():
     if request.method == "DELETE":
         fs.__init__()
         for d in data_nodes:
-            request_datanode(d, 'filesystem', request.method)
+            request_datanode(d, "filesystem", request.method)
         if len(data_nodes) > 0:
             return Response("Storage is initialized and ready", 200)
         else:
             return Response("Storage is unavailable", 400)
 
 
-@app.route("/file", methods=["POST", "GET", "PUT"])
+@app.route("/file", methods=["POST", "GET", "PUT", "DELETE"])
 def file():
     filename = request.args["filename"]
     file: File = fs.get_file(filename)
 
     if request.method == "GET":
         if not file:
-            return Response(status=404)
+            return Response("File not found", status=404)
         else:
-            return jsonify(file.serialize())
+            return jsonify({"file": file.serialize()})
 
     elif request.method == "POST":
-        try:
-            file: File = fs.add_file(filename)
-        except Exception as e:
-            print(str(e))
-            return Response(str(e), 400)
-        return jsonify({'datanodes': choose_datanodes(), 'file': file.serialize()})
+        file: File = fs.add_file(filename)
+        return jsonify({"datanodes": choose_datanodes(), "file": file.serialize()})
 
     elif request.method == "PUT":
         if request.args["op"] == "mv":
@@ -183,21 +191,50 @@ def event():
 def ping_data_nodes():
     time.sleep(5)
     while True:
-        for d in data_nodes:
-            node_address = f"{d.ip}:{d.port}"
+
+        for cur_node in data_nodes:
+            files = fs.get_all_files()
+            file_ids = {"files": fs.get_all_ids()}
+
+            node_address = f"{cur_node.ip}:{cur_node.port}"
             app.logger.info(f"Synchronisation with datanode {node_address}")
             try:
-                resp = requests.get(os.path.join(node_address, "ping"))
+                resp = requests.get(
+                    os.path.join(node_address, "filesystem"), json=file_ids
+                )
                 app.logger.info(f"Success - datanode {node_address} is alive")
+                data_file_ids = resp.json()["files"]
+                for file_id in data_file_ids:
+                    file = fs.get_file_by_id(int(file_id))
+                    # update info that data node has some new file
+                    if file is None:
+                        app.logger.info(
+                            f"Sent request to delete unknown file {file_id} on datanode {node_address}"
+                        )
+                        request_datanode(cur_node, f"file?filename={file_id}", "DELETE")
+                        continue
+                    if not cur_node in file.nodes:
+                        app.logger.info(
+                            f"New file found on datanode {node_address} - {file.name}"
+                        )
+                        file.nodes.append(cur_node)
+                for file in files:
+                    # update info that data node does not have some file
+                    if cur_node in file.nodes and file.id not in data_file_ids:
+                        app.logger.info(
+                            f"File {file.name} not found on datanode, deleting from database"
+                        )
+                        file.nodes.remove(cur_node)
+
             except ConnectionError as e:
-                app.logger.info(f"Datanode {node_address} synchronisation failed")
-                drop_datanode(d)
+                app.logger.info(f"Datanode '{node_address}' synchronisation failed")
+                drop_datanode(cur_node)
         time.sleep(5)
 
 
 if __name__ == "__main__":
-    create_log(app, 'master_node')
+    create_log(app, "master_node")
     ping_thread = threading.Thread(target=ping_data_nodes)
     ping_thread.start()
-    app.run(host='0.0.0.0', port=3030)
+    app.run(host="0.0.0.0", port=3030)
     ping_thread.join()
