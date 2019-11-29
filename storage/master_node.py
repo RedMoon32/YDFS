@@ -154,12 +154,16 @@ def event():
 def ping_data_nodes():
     time.sleep(5)
     while True:
+        file_ids = {"files": fs.get_file_ids()}
+
         for d in data_nodes:
             node_address = f"{d.ip}:{d.port}"
             app.logger.info(f"Synchronisation with datanode {node_address}")
             try:
-                resp = requests.get(os.path.join(node_address, "ping"))
+                resp = requests.get(os.path.join(node_address, "ping"), data=file_ids)
                 app.logger.info(f"Success - datanode {node_address} is alive")
+                for file in resp.json()["files"]:
+                    pass
             except ConnectionError as e:
                 app.logger.info(f"Datanode {node_address} synchronisation failed")
                 drop_datanode(d)

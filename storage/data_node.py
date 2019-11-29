@@ -1,5 +1,5 @@
 import requests
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
 import os
 import shutil
 from storage.utils import create_log
@@ -11,13 +11,13 @@ FILE_STORE = "./data"
 MASTER_NODE = "http://localhost:3030/"
 
 
-# @TODO
-# rewrite all methods using Flask Restful
-
-
 @app.route("/ping")
 def ping():
-    return "Hello, Data Node is Alive!"
+    file_ids = request.json()["files"]
+    for fid in os.listdir(FILE_STORE):
+        if int(fid) not in file_ids:
+            os.remove(os.path.join(FILE_STORE, fid))
+    return jsonify({"files": os.listdir(FILE_STORE)})
 
 
 @app.route("/filesystem", methods=["DELETE"])

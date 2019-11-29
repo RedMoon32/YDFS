@@ -22,6 +22,7 @@ class FileSystem:
     def __init__(self):
         # dict {file_path<a.txt>: {file_id: 0, nodes: [DataNode()], file_info {created_at:000} }
         self._file_mapper = {}
+        self._file_by_id_mapper = {}
         # array of [{dir_path</a/b>:'vv',dir_info:  {created_at:000}}]
         self._dirs = ["/"]
         self._id = 0
@@ -33,10 +34,12 @@ class FileSystem:
             raise Exception(f"Directory '{os.path.dirname(filename)}' not found")
         else:
             self._id += 1
-            self._file_mapper[filename] = File(
+            new_file = File(
                 filename, self._id, [], {"created_at": time.time()}
             )
-            return self._file_mapper[filename]
+            self._file_mapper[filename] = new_file
+            self._file_by_id_mapper[new_file.id] = new_file
+            return new_file
 
     def get_file(self, filename) -> File:
         return self._file_mapper.get(filename, None)
@@ -86,6 +89,10 @@ class FileSystem:
             for file in self._file_mapper
             if self.file_in_directory(file, dirname)
         ]
+
+    def get_file_ids(self):
+        return [self._file_mapper[file].id for file in self._file_mapper
+                ]
 
     def move_file(self, file_name, destination):
         new_file_name = os.path.join(destination, os.path.basename(file_name))
