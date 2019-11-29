@@ -18,14 +18,22 @@ class File:
         }
 
     def __eq__(self, other):
-        return self.name == other.name \
-               and self.id == other.id and self.file_info == other.file_info
+        return (
+            self.name == other.name
+            and self.id == other.id
+            and self.file_info == other.file_info
+        )
+
+    def __hash__(self):
+        return self.id
 
 
 class FileSystem:
     def __init__(self):
         # dict {file_path<a.txt>: {file_id: 0, nodes: [DataNode()], file_info {created_at:000} }
         self._file_mapper = {}
+        # stores same files by references as file_mapper but instead of name it uses file_id
+        self._file_id_mapper = {}
         # array of [{dir_path</a/b>:'vv',dir_info:  {created_at:000}}]
         self._dirs = ["/"]
         self._id = 0
@@ -37,10 +45,10 @@ class FileSystem:
             raise Exception(f"Directory '{os.path.dirname(filename)}' not found")
         else:
             self._id += 1
-            self._file_mapper[filename] = File(
-                filename, self._id, [], {"created_at": time.time()}
-            )
-            return self._file_mapper[filename]
+            new_file = File(filename, self._id, [], {"created_at": time.time()})
+            self._file_mapper[filename] = new_file
+            self._file_id_mapper[new_file.id] = new_file
+            return new_file
 
     def get_file(self, filename) -> File:
         return self._file_mapper.get(filename, None)
@@ -78,10 +86,10 @@ class FileSystem:
         return os.path.dirname(filename) == dirname
 
     def get_file_by_id(self, file_id):
-        for file in self._file_mapper:
-            if self._file_mapper[file].id == file_id:
-                return self._file_mapper[file]
-        return None
+        return self._file_id_mapper.get(file_id, None)
+
+    def get_all_files(self):
+        return list(self._file_mapper.values())
 
     def get_files(self, dirname):
         # O(n) getting list of files in dir
@@ -90,6 +98,9 @@ class FileSystem:
             for file in self._file_mapper
             if self.file_in_directory(file, dirname)
         ]
+
+    def get_all_ids(self):
+        return list(self._file_id_mapper.keys())
 
     def move_file(self, file_name, destination):
         new_file_name = os.path.join(destination, os.path.basename(file_name))
@@ -107,10 +118,12 @@ class FileSystem:
             raise FileNotFoundError(f"No file {file_name} found")
 
     def remove_file(self, file_name):
-        if not file_name in self._file_mapper:
+        file = self.get_file(file_name)
+        if file is None:
             raise FileNotFoundError(f"File {file_name} not found")
         else:
-            self._file_mapper.pop(file_name)
+            self._file_mapper.pop(file.name)
+            self._file_id_mapper.pop(file.id)
 
     def remove_dir(self, dirname):
         if dirname not in self._dirs:

@@ -42,12 +42,18 @@ def request_datanode(datanode, command, method):
                 resp = requests.delete(os.path.join(node_address, command))
             return resp
         except Exception as e:
-            print(str(e))
+            print(f"DataNode {node_address} connection failed")
     drop_datanode(datanode)
     return None
 
 
 def drop_datanode(datanode):
+    for file in fs.get_all_files():
+        if datanode in file.nodes:
+            file.nodes.remove(datanode)
+            app.logger.info(
+                f"Removing file {file.name} in database from {datanode.ip}:{datanode.port}"
+            )
     data_nodes.remove(datanode)
     app.logger.info(f"Removed not responding datanode {datanode.ip}:{datanode.port}")
 
@@ -147,38 +153,54 @@ def directory():
             for dnode in file.nodes:
                 request_datanode(dnode, f"file?filename={file.id}", "DELETE")
             fs.remove_file(file.name)
-        return Response(f"Directory {dirname} and all its sub-folders and files was deleted", status=200)
-
-
-@app.route("/file_created", methods=["POST"])
-def event():
-    file_id, ip, port = (
-        int(request.args["file_id"]),
-        f"http://{request.remote_addr}",
-        request.args["port"],
-    )
-    dnode = DataNode(ip, port)
-    file: File = fs.get_file_by_id(file_id)
-    if dnode not in data_nodes or file is None:
-        return Response(status=404)
-    else:
-        file.nodes.append(dnode)
-        return Response(status=200)
+        return Response(
+            f"Directory {dirname} and all its sub-folders and files was deleted",
+            status=200,
+        )
 
 
 def ping_data_nodes():
     time.sleep(5)
     while True:
-        for d in data_nodes:
-            node_address = f"{d.ip}:{d.port}"
+
+        for cur_node in data_nodes:
+            files = fs.get_all_files()
+            file_ids = {"files": fs.get_all_ids()}
+
+            node_address = f"{cur_node.ip}:{cur_node.port}"
             app.logger.info(f"Synchronisation with datanode {node_address}")
             try:
-                resp = requests.get(os.path.join(node_address, "ping"))
+                resp = requests.get(
+                    os.path.join(node_address, "filesystem"), json=file_ids
+                )
                 app.logger.info(f"Success - datanode {node_address} is alive")
+                data_file_ids = resp.json()["files"]
+                for file_id in data_file_ids:
+                    file = fs.get_file_by_id(int(file_id))
+                    # update info that data node has some new file
+                    if file is None:
+                        app.logger.info(
+                            f"Sent request to delete unknown file {file_id} on datanode {node_address}"
+                        )
+                        request_datanode(cur_node, f"file?filename={file_id}", "DELETE")
+                        continue
+                    if not cur_node in file.nodes:
+                        app.logger.info(
+                            f"New file found on datanode {node_address} - {file.name}"
+                        )
+                        file.nodes.append(cur_node)
+                for file in files:
+                    # update info that data node does not have some file
+                    if cur_node in file.nodes and file.id not in data_file_ids:
+                        app.logger.info(
+                            f"File {file.name} not found on datanode, deleting from database"
+                        )
+                        file.nodes.remove(cur_node)
+
             except ConnectionError as e:
                 app.logger.info(f"Datanode {node_address} synchronisation failed")
-                drop_datanode(d)
-        time.sleep(50)
+                drop_datanode(cur_node)
+        time.sleep(5)
 
 
 if __name__ == "__main__":

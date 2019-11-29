@@ -1,5 +1,7 @@
+import sys
+
 import requests
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
 import os
 import shutil
 from storage.utils import create_log
@@ -11,16 +13,12 @@ FILE_STORE = "./data"
 MASTER_NODE = "http://localhost:3030/"
 
 
-# @TODO
-# rewrite all methods using Flask Restful
-
-
 @app.route("/ping")
 def ping():
-    return "Hello, Data Node is Alive!"
+    return Response("Master Node is Alive")
 
 
-@app.route("/filesystem", methods=["DELETE"])
+@app.route("/filesystem", methods=["DELETE", "GET"])
 def filesystem():
     if request.method == "DELETE":
         try:
@@ -30,6 +28,18 @@ def filesystem():
             return Response(status=200)
         except Exception as e:
             return Response(f"Error clearing storage", 400)
+
+    elif request.method == "GET":
+        if "files" not in request.json:
+            return Response(status=400)
+        file_ids = request.json["files"]
+        for fid in os.listdir(FILE_STORE):
+            if int(fid) not in file_ids:
+                os.remove(os.path.join(FILE_STORE, fid))
+                app.logger.info(
+                    f"Deleting File with fid={fid} as file not found on master"
+                )
+        return jsonify({"files": [int(fid) for fid in os.listdir(FILE_STORE)]})
 
 
 @app.route("/file", methods=["GET", "POST", "DELETE"])
@@ -53,21 +63,6 @@ def file():
         try:
             if os.path.exists(fpath):
                 return Response(f"File already exists", 400)
-
-            try:
-                # say master that new file was created on datanode
-                resp = requests.post(
-                    os.path.join(
-                        MASTER_NODE, f"file_created?file_id={filename}&port={PORT}"
-                    )
-                )
-                if resp.status_code != 200:
-                    return Response(status=404)
-            except:
-                return Response(
-                    "Error while sending approving request to master node", status=400
-                )
-
             f = open(fpath, "wb")
             f.write(request.data)
 
@@ -88,8 +83,11 @@ def init_node():
     create_log(app, "data_node")
     if not os.path.exists(FILE_STORE):
         os.mkdir(FILE_STORE)
-    # run master node first
-    requests.post(os.path.join(MASTER_NODE, "datanode?port=2020"))
+    try:
+        requests.post(os.path.join(MASTER_NODE, "datanode?port=2020"))
+    except:
+        app.logger.error(f"Could not connect to Master Node - {MASTER_NODE}")
+        sys.exit(-1)
     app.run(host="0.0.0.0", port=PORT)
 
 
