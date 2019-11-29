@@ -56,7 +56,7 @@ def test_file_node_locations(client):
         ),
     }
     resp = client.get("/file?filename=file1")
-    assert resp.json["nodes"] == [
+    assert resp.json["file"]["nodes"] == [
         {"ip": "127.0.0.1", "port": 333},
         {"ip": "127.0.0.2", "port": 333},
     ]
