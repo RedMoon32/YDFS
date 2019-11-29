@@ -145,12 +145,29 @@ def remove_file_or_dir(*args):
         dir_resp = requests.get(os.path.join(MASTER_NODE, f"directory?name={destination}"))
         file_resp = requests.get(os.path.join(MASTER_NODE, f"file?filename={destination}"))
 
-        if check_response(dir_resp, pretty_print_enabled=True):
-            resp = requests.delete(os.path.join(MASTER_NODE, f"directory?name={destination}"))
-            check_response(resp)
-        elif check_response(file_resp, pretty_print_enabled=True):
+        if check_response(file_resp, verbose=False):
             resp = requests.delete(os.path.join(MASTER_NODE, f"file?filename={destination}"))
             check_response(resp)
+        elif check_response(dir_resp, verbose=False):
+            data = dir_resp.json()
+            if len(data["dirs"]) > 0 or len(data["files"]) > 0:  # If destination directory is not empty
+                # Prompt for yes/no while not get satisfactory answer
+                while True:
+                    inp = input(f"rm: directory '{destination} is not empty, remove? [y/N]': ").split()
+                    if check_args("rm", tuple(inp), optional_operands=["yes/no"]):
+                        if len(inp) == 0 or inp[0].lower() == 'n':  # Consider as decline
+                            break
+                        ans = inp[0]
+                        if ans.lower() == "y":  # Consider as accept
+                            resp = requests.delete(os.path.join(MASTER_NODE, f"directory?name={destination}"))
+                            check_response(resp)
+                            break
+                        else:
+                            print("Incorrect input")
+                            continue
+            else:
+                resp = requests.delete(os.path.join(MASTER_NODE, f"directory?name={destination}"))
+                check_response(resp)
         else:
             print(f"rm: cannot remove '{destination}': No such file or directory")
 

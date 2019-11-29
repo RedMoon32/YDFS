@@ -148,6 +148,8 @@ def directory():
     elif request.method == "DELETE":
         if not fs.dir_exists(dirname):
             return Response(f"Directory '{dirname}' does not exist", 404)
+        if dirname == '/':
+            return Response("Cannot remove root directory", 400)
         rm_list = fs.remove_dir(dirname)
         for file in rm_list:
             for dnode in file.nodes:
