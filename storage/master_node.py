@@ -99,7 +99,7 @@ def file():
 
     if request.method == "GET":
         if not file:
-            return Response("File not found", status=404)
+            return Response("file not found", status=404)
         else:
             return jsonify({"file": file.serialize()})
 
@@ -110,16 +110,16 @@ def file():
     elif request.method == "PUT":
         destination = request.args["destination"]
         fs.move_file(filename, destination)
-        return Response(f"File '{filename}' was moved to '{destination}'", 200)
+        return Response(f"file '{filename}' was moved to '{destination}'", 200)
 
     elif request.method == "DELETE":
         if not file:
-            return Response(f"File '{filename}' not found", status=404)
+            return Response(f"file '{filename}' not found", status=404)
         else:
             for dnode in file.nodes:
                 request_datanode(dnode, f"file?filename={file.id}", "DELETE")
             fs.remove_file(filename)
-            return Response(f"File '{filename}' was deleted", 200)
+            return Response(f"file '{filename}' was deleted", 200)
 
 
 @app.route("/directory", methods=["GET", "POST", "DELETE"])
@@ -134,11 +134,11 @@ def directory():
 
     if request.method == "POST":
         fs.add_directory(dirname)
-        return Response(f"Directory '{dirname}' created", 201)
+        return Response(f"directory '{dirname}' created", 201)
 
     elif request.method == "GET":
         if not fs.dir_exists(dirname):
-            return Response(f"Directory '{dirname}' does not exist", 404)
+            return Response(f"directory '{dirname}' does not exist", 404)
         return jsonify(
             {
                 "files": list(map(File.serialize, fs.get_files(dirname))),
@@ -147,16 +147,16 @@ def directory():
         )
     elif request.method == "DELETE":
         if not fs.dir_exists(dirname):
-            return Response(f"Directory '{dirname}' does not exist", 404)
+            return Response(f"directory '{dirname}' does not exist", 404)
         if dirname == '/':
-            return Response("Cannot remove root directory", 400)
+            return Response("cannot remove root directory", 400)
         rm_list = fs.remove_dir(dirname)
         for file in rm_list:
             for dnode in file.nodes:
                 request_datanode(dnode, f"file?filename={file.id}", "DELETE")
             fs.remove_file(file.name)
         return Response(
-            f"Directory '{dirname}' and all its sub-folders and files were deleted",
+            f"directory '{dirname}' and all its sub-folders and files were deleted",
             status=200,
         )
 
@@ -200,7 +200,7 @@ def ping_data_nodes():
                         file.nodes.remove(cur_node)
 
             except ConnectionError as e:
-                app.logger.info(f"Datanode '{node_address}' synchronisation failed")
+                app.logger.info(f"datanode '{node_address}' synchronisation failed")
                 drop_datanode(cur_node)
         time.sleep(5)
 

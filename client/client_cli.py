@@ -9,15 +9,15 @@ def show_help(*unused):
     """Print out commands' description"""
     print(
         "Commands and arguments:\n"
-        "$ ping                     : ping the filesystem\n"
-        "$ init                     : initialize the storage\n"
-        "$ mv <file> <destination>  : move file to a given destination dir\n"
-        "$ put <file> <destination> : put a local file to the remote filesystem\n"
-        "$ cd <destination>         : change remote pwd to a destination dir\n"
-        "$ mkdir <directory>        : create a specified dir\n"
-        "$ get <file> <destination> : put a remote file to a local filesystem\n"
-        "$ ls [destination]         : list file information for a destination, no [destination] == '.'\n"
-        "$ rm <destination>         : remove a destination directory or a file\n"
+        "ping                     : ping the filesystem\n"
+        "init                     : initialize the storage\n"
+        "mv <file> <destination>  : move file to a given destination dir\n"
+        "put <file> <destination> : put a local file to the remote filesystem\n"
+        "cd <destination>         : change remote pwd to a destination dir\n"
+        "mkdir <directory>        : create a specified dir\n"
+        "get <file> <destination> : put a remote file to a local filesystem\n"
+        "ls [destination]         : list file information for a destination, no [destination] == '.'\n"
+        "rm <destination>         : remove a destination directory or a file\n"
         "Note:\n<required_positional_operand>, [optional_operand]\n"
     )
 
@@ -25,13 +25,13 @@ def show_help(*unused):
 def ping_master_node(*unused):
     """Check that master_node is alive"""
     resp = requests.get(os.path.join(MASTER_NODE, "ping"))
-    check_response(resp)
+    check_response(resp, "ping")
 
 
 def initialize_filesystem(*unused):
     """Clear filesystem, prepare it for work"""
     resp = requests.delete(os.path.join(MASTER_NODE, "filesystem"))
-    check_response(resp)
+    check_response(resp, "init")
 
 
 def move_file(*args):
@@ -50,7 +50,7 @@ def move_file(*args):
                 MASTER_NODE, f"file?filename={filename}&destination={destination}"
             )
         )
-        check_response(resp)
+        check_response(resp, "mv")
 
 
 def put_file(*args):
@@ -69,7 +69,7 @@ def put_file(*args):
             # Request to store a file in the filesystem
             # Request structure: /file?filename=<path>
             resp = requests.post(os.path.join(MASTER_NODE, f"file?filename={path}"))
-            if check_response(resp, pretty_print_enabled=True):
+            if check_response(resp, "put", print_content=False):
                 content = resp.json()
                 nodes = content["datanodes"]  # Available storage datanodes
                 file = content[
@@ -92,8 +92,10 @@ def change_dir(*args):
     if check_args("cd", args, required_operands=["destination"]):
         destination = make_abs(args[1])
         resp = requests.get(os.path.join(MASTER_NODE, f"directory?name={destination}"))
-        if check_response(resp, pretty_print_enabled=True):
+        if check_response(resp, "cd", verbose=False):
             set_pwd(destination)
+        else:
+            print(f"cd: {destination}: No such file or directory")
 
 
 def make_dir(*args):
@@ -105,7 +107,7 @@ def make_dir(*args):
     if check_args("mkdir", args, required_operands=["destination"]):
         destination = make_abs(args[1])
         resp = requests.post(os.path.join(MASTER_NODE, f"directory?name={destination}"))
-        check_response(resp)
+        check_response(resp, "mkdir")
 
 
 def read_file(*args):
@@ -113,20 +115,20 @@ def read_file(*args):
         fpath = make_abs(args[1])
         dest = args[2]
         resp = requests.get(os.path.join(MASTER_NODE, f"file?filename={fpath}"))
-        if check_response(resp):
+        if check_response(resp, "get", print_content=False):
             data = resp.json()
             resp = request_datanodes(
-                data["nodes"], f"file?filename={data['file_id']}", "GET"
+                data["file"]["nodes"], f"file?filename={data['file']['file_id']}", "GET"
             )
-            if check_response(resp):
-                print(f"=============\nFile {fpath} successfully retrieved")
-                print(f"Saving to {dest}")
+            if check_response(resp, "get", print_content=False):
+                print(f"File '{fpath}' successfully retrieved")
+                print(f"Saving to '{dest}'")
                 try:
                     f = open(dest, "wb")
                     f.write(resp.content)
                     print("Successfully saved")
-                except:
-                    print("Error while saving on local filesystem")
+                except OSError as e:
+                    print(f"Error while saving on local filesystem: {e.strerror} '{e.filename}'")
 
 
 def remove_file_or_dir(*args):
@@ -147,7 +149,7 @@ def remove_file_or_dir(*args):
 
         if check_response(file_resp, verbose=False):
             resp = requests.delete(os.path.join(MASTER_NODE, f"file?filename={destination}"))
-            check_response(resp)
+            check_response(resp, "rm")
         elif check_response(dir_resp, verbose=False):
             data = dir_resp.json()
             if len(data["dirs"]) > 0 or len(data["files"]) > 0:  # If destination directory is not empty
@@ -160,14 +162,14 @@ def remove_file_or_dir(*args):
                         ans = inp[0]
                         if ans.lower() == "y":  # Consider as accept
                             resp = requests.delete(os.path.join(MASTER_NODE, f"directory?name={destination}"))
-                            check_response(resp)
+                            check_response(resp, "rm")
                             break
                         else:
                             print("Incorrect input")
                             continue
             else:
                 resp = requests.delete(os.path.join(MASTER_NODE, f"directory?name={destination}"))
-                check_response(resp)
+                check_response(resp, "rm")
         else:
             print(f"rm: cannot remove '{destination}': No such file or directory")
 
@@ -185,9 +187,9 @@ def list_dir(*args):
             destination = make_abs(".")
 
         resp = requests.get(os.path.join(MASTER_NODE, f"directory?name={destination}"))
-        if not check_response(resp, pretty_print_enabled=True):
+        if not check_response(resp, "ls", pretty_print_enabled=True):
             resp = requests.get(os.path.join(MASTER_NODE, f"file?filename={destination}"))
-            if not check_response(resp, pretty_print_enabled=True):
+            if not check_response(resp, "ls", pretty_print_enabled=True):
                 print(f"ls: cannot access '{destination}': No such file or directory")
 
 
@@ -205,10 +207,10 @@ command_tree = {
 }
 
 if __name__ == "__main__":
-    print("Client is working , but run Master Node first")
+    print("Client is working, but run Master Node first")
+    print("Enter a command(type '$ help' to view the commands' description)")
     while True:
-        print("Enter the command(type '$ help' to view the commands' description)")
-        args = input("$ ").split()
+        args = input(get_pwd() + "$ ").split()
         if len(args) == 0:
             continue
         try:
@@ -216,4 +218,4 @@ if __name__ == "__main__":
         except KeyError:
             print(f"No such command '{args[0]}', please try again")
         except Exception:
-            print("Command failed, please try again ")
+            print("Command failed, please try again")

@@ -40,9 +40,9 @@ class FileSystem:
 
     def add_file(self, filename) -> File:
         if filename in self._file_mapper:
-            raise Exception(f"File '{filename}' already exists")
+            raise Exception(f"file '{filename}' already exists")
         if not self.dir_exists(os.path.dirname(filename)):
-            raise Exception(f"Directory '{os.path.dirname(filename)}' not found")
+            raise Exception(f"directory '{os.path.dirname(filename)}' not found")
         else:
             self._id += 1
             new_file = File(filename, self._id, [], {"created_at": time.time()})
@@ -59,11 +59,11 @@ class FileSystem:
     def add_directory(self, dirname):
 
         if dirname == "":
-            raise ValueError("Empty name not allowed")
+            raise ValueError("empty name not allowed")
         if self.dir_exists(dirname):
-            raise FileExistsError(f"Directory '{dirname}' already exists")
+            raise FileExistsError(f"directory '{dirname}' already exists")
         if self.get_file(dirname) is not None:
-            raise ValueError(f"Already exists the file named '{dirname}'")
+            raise ValueError(f"already exists the file named '{dirname}'")
         if not self.dir_exists(os.path.dirname(dirname)):
             raise ValueError(
                 f"Upper directory '{os.path.dirname(dirname)}' does not exist"
@@ -106,28 +106,28 @@ class FileSystem:
         new_file_name = os.path.join(destination, os.path.basename(file_name))
 
         if not self.dir_exists(destination):
-            raise FileNotFoundError(f"No {destination} directory found")
+            raise FileNotFoundError(f"directory '{destination}' not found")
 
         if self.get_file(new_file_name):
-            raise FileExistsError(f"File {new_file_name} already exists")
+            raise FileExistsError(f"file '{new_file_name}' already exists")
 
         if file_name in self._file_mapper:
             self._file_mapper[new_file_name] = self._file_mapper.pop(file_name)
             self._file_mapper[new_file_name].name = new_file_name
         else:
-            raise FileNotFoundError(f"No file {file_name} found")
+            raise FileNotFoundError(f"file '{file_name}' found")
 
     def remove_file(self, file_name):
         file = self.get_file(file_name)
         if file is None:
-            raise FileNotFoundError(f"File {file_name} not found")
+            raise FileNotFoundError(f"file '{file_name}' not found")
         else:
             self._file_mapper.pop(file.name)
             self._file_id_mapper.pop(file.id)
 
     def remove_dir(self, dirname):
         if dirname not in self._dirs:
-            raise FileNotFoundError(f"Directory {dirname} not found")
+            raise FileNotFoundError(f"directory '{dirname}' not found")
         self._dirs.remove(dirname)
         dirname = dirname + "/" if dirname[-1] != "/" else dirname
         files = []
