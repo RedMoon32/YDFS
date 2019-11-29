@@ -53,7 +53,7 @@ def file():
 
     if request.method == "GET":
         if not os.path.exists(fpath):
-            return Response(f"File not found", 404)
+            return Response(f"file '{fpath}' not found", 404)
         f = open(fpath, "r")
         content = f.read()
 
@@ -62,18 +62,18 @@ def file():
     elif request.method == "POST":
         try:
             if os.path.exists(fpath):
-                return Response(f"File already exists", 400)
+                return Response(f"file '{fpath}' already exists", 400)
             f = open(fpath, "wb")
             f.write(request.data)
 
             return Response(status=201)
 
         except Exception as e:
-            return Response(f"Error opening file ", 400)
+            return Response(f"error opening file '{fpath}'", 400)
 
     elif request.method == "DELETE":
         if not os.path.exists(fpath):
-            return Response(f"File not found", 404)
+            return Response(f"file not '{fpath}' found", 404)
         else:
             os.remove(fpath)
             return Response(status=200)
