@@ -17,6 +17,7 @@ def show_help(*unused):
         "$ mkdir <directory>        : create a specified dir\n"
         "$ get <file> <destination> : put a remote file to a local filesystem\n"
         "$ ls [destination]         : list file information for a destination, no [destination] == '.'\n"
+        "$ rm <destination>         : remove a destination directory or a file\n"
         "Note:\n<required_positional_operand>, [optional_operand]\n"
     )
 
@@ -129,13 +130,29 @@ def read_file(*args):
 
 
 def remove_file_or_dir(*args):
+    """
+    Remove a destination directory or a file
+    :param args: rm <destination>
+    :return:
+    """
     if check_args("rm", args, ["file_or_dir"]):
-        fpath = make_abs(args[1])
-        pass
-        # get directory info {files:[], dirs:[]} via get /directory?name={}
-        # if file call on master delete /file?filename
-        # if dir 1) check if not empty via get /directory?name={} 2)
-        # call delete /directory?name={}
+        destination = make_abs(args[1])
+
+        if get_pwd().startswith(destination):
+            print(f"rm: cannot remove '{destination}': It is a prefix of the current working directory")
+            return
+
+        dir_resp = requests.get(os.path.join(MASTER_NODE, f"directory?name={destination}"))
+        file_resp = requests.get(os.path.join(MASTER_NODE, f"file?filename={destination}"))
+
+        if check_response(dir_resp, pretty_print_enabled=True):
+            resp = requests.delete(os.path.join(MASTER_NODE, f"directory?name={destination}"))
+            check_response(resp)
+        elif check_response(file_resp, pretty_print_enabled=True):
+            resp = requests.delete(os.path.join(MASTER_NODE, f"file?filename={destination}"))
+            check_response(resp)
+        else:
+            print(f"rm: cannot remove '{destination}': No such file or directory")
 
 
 def list_dir(*args):

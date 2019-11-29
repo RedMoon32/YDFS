@@ -19,7 +19,7 @@ def pretty_print(data):
                 json_data = json_normalize(data[d])
                 if not json_data.empty:
                     print(d, ":")
-                    print(json_data)
+                    print(json_data.to_string())
                 else:
                     print(d, ":", [])
     except Exception as e:
@@ -132,3 +132,8 @@ def set_pwd(path):
     """Setter for a pending working directory"""
     global pwd
     pwd = path
+
+
+def get_pwd():
+    """Getter for a pending working directory"""
+    return pwd
