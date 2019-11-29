@@ -95,7 +95,7 @@ def file():
         if not file:
             return Response("File not found", status=404)
         else:
-            return jsonify(file.serialize())
+            return jsonify({"file": file.serialize()})
 
     elif request.method == "POST":
         file: File = fs.add_file(filename)
