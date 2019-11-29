@@ -89,7 +89,7 @@ def init_node():
     if not os.path.exists(FILE_STORE):
         os.mkdir(FILE_STORE)
     # run master node first
-    requests.post(os.path.join(MASTER_NODE, "datanode?ip=http://127.0.0.1&port=2020"))
+    requests.post(os.path.join(MASTER_NODE, "datanode?port=2020"))
     app.run(host="0.0.0.0", port=PORT)
 
 

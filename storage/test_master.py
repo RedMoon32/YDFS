@@ -1,3 +1,4 @@
+import pook
 import pytest
 
 from storage.master_node import app as master_node, DataNode
@@ -20,18 +21,17 @@ def clean():
 
 
 def test_register_datanode(client):
-    resp = client.post("/datanode?ip=101.101.101.101&port=2000")
+    resp = client.post("/datanode?port=2000")
     assert resp.status_code == 201
 
-    resp = client.post("/datanode?ip=101.101.101.101&port=2000")
+    resp = client.post("/datanode?port=2000")
     assert resp.status_code == 400
 
     clean()
 
 
 def test_file_location_to_store(client):
-    resp = client.post("/datanode?ip=101.101.101.101&port=2000")
-    assert resp.status_code == 201
+    storage.master_node.data_nodes = [DataNode("101.101.101.101", 2000)]
 
     resp = client.post("/file?filename=a.txt")
     assert resp.json["datanodes"] == [{"ip": "101.101.101.101", "port": 2000}]
@@ -56,7 +56,7 @@ def test_file_node_locations(client):
         ),
     }
     resp = client.get("/file?filename=file1")
-    assert resp.json["nodes"] == [
+    assert resp.json["file"]["nodes"] == [
         {"ip": "127.0.0.1", "port": 333},
         {"ip": "127.0.0.2", "port": 333},
     ]
@@ -136,7 +136,114 @@ def test_file_move(client):
 
 
 def test_filesystem_delete(client):
+    clean()
+
     client.delete("filesystem")
     assert storage.master_node.fs._id == 0
     assert storage.master_node.fs._dirs == ["/"]
     assert storage.master_node.fs._file_mapper == {}
+
+
+@pook.on
+def test_delete_file(client):
+    clean()
+
+    storage.master_node.fs._dirs = ["/", "/a", "/b", "/a/c"]
+    storage.master_node.fs._file_mapper = {
+        "/a/a1.txt": File(
+            "1", 0, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/a/a2.txt": File(
+            "1", 1, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/a/c/a2.txt": File(
+            "2", 2, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/r1.txt": File(
+            "3", 3, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/r2.txt": File(
+            "4", 4, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+    }
+    mocks = []
+    for fid in range(1, 5):
+        mocks.append(pook.delete(
+            f"http://127.0.0.1:333/file?filename={fid}", reply=200
+        ))
+    resp = client.delete("/file?filename=/a/a2.txt")
+    assert resp.status_code == 200
+    assert not storage.master_node.fs.file_exists("/a/a2.txt")
+
+    resp = client.delete("/file?filename=/a/a2.txt")
+    assert resp.status_code == 404
+
+    resp = client.delete("/file?filename=/r1.txt")
+    assert resp.status_code == 200
+
+    resp = client.delete("/file?filename=/r2.txt")
+    assert resp.status_code == 200
+
+    correct = {
+        "/a/a1.txt": File(
+            "1", 0, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/a/c/a2.txt": File(
+            "2", 2, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+    }
+
+    assert len(storage.master_node.fs._file_mapper.keys()) == 2
+    assert correct["/a/a1.txt"] == storage.master_node.fs.get_file("/a/a1.txt")
+    assert correct["/a/c/a2.txt"] == storage.master_node.fs.get_file("/a/c/a2.txt")
+
+
+@pook.on
+def test_delete_dir(client):
+    clean()
+
+    # we will delete /a directory and all its subdirectories/folders
+    storage.master_node.fs._dirs = ["/", "/a", "/b", "/a/c", "/a/c/d", "/a/c/d/e"]
+    storage.master_node.fs._file_mapper = {
+        "/a/a1.txt": File(
+            "/a/a1.txt", 1, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/a/a2.txt": File(
+            "/a/a2.txt", 1, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/a/c/d/b.txt": File(
+            "/a/c/d/b.txt", 1, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/a/c/d/e/b.txt": File(
+            "/a/c/d/e/b.txt", 1, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/a/c/d/c.txt": File(
+            "/a/c/d/c.txt", 1, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/a/c/a2.txt": File(
+            "/a/c/a2.txt", 1, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/b/a2.txt": File(
+            "/b/a2.txt", 1, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/r1.txt": File(
+            "/r1.txt", 1, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+        "/r2.txt": File(
+            "/r2.txt", 1, [DataNode("http://127.0.0.1", "333")], {}
+        ),
+
+    }
+    mock = pook.delete(
+        "http://127.0.0.1:333/file?filename=1", reply=200, times=20
+    )
+    resp = client.delete("/directory?name=/a")
+    assert resp.status_code == 200
+    assert storage.master_node.fs._dirs == ["/", "/b"]
+
+    newfs = storage.master_node.fs._file_mapper.keys()
+    assert len(newfs) == 3
+    assert "/r1.txt" in newfs
+    assert "/r2.txt" in newfs
+    assert "/b/a2.txt" in newfs
+    assert mock.calls == 6

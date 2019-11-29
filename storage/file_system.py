@@ -17,6 +17,10 @@ class File:
             "file_info": self.file_info,
         }
 
+    def __eq__(self, other):
+        return self.name == other.name \
+               and self.id == other.id and self.file_info == other.file_info
+
 
 class FileSystem:
     def __init__(self):
@@ -98,13 +102,34 @@ class FileSystem:
         new_file_name = os.path.join(destination, os.path.basename(file_name))
 
         if not self.dir_exists(destination):
-            raise FileNotFoundError("No directory found")
+            raise FileNotFoundError(f"No {destination} directory found")
 
         if self.get_file(new_file_name):
-            raise FileExistsError("File already exists")
+            raise FileExistsError(f"File {new_file_name} already exists")
 
         if file_name in self._file_mapper:
             self._file_mapper[new_file_name] = self._file_mapper.pop(file_name)
             self._file_mapper[new_file_name].name = new_file_name
         else:
-            raise FileNotFoundError("No file found")
+            raise FileNotFoundError(f"No file {file_name} found")
+
+    def remove_file(self, file_name):
+        if not file_name in self._file_mapper:
+            raise FileNotFoundError(f"File {file_name} not found")
+        else:
+            self._file_mapper.pop(file_name)
+
+    def remove_dir(self, dirname):
+        if dirname not in self._dirs:
+            raise FileNotFoundError(f"Directory {dirname} not found")
+        self._dirs.remove(dirname)
+        dirname = dirname + "/" if dirname[-1] != "/" else dirname
+        files = []
+        for file in self._file_mapper.values():
+            if file.name.startswith(dirname):
+                # list of files which must be deleted from datanodes
+                files.append(file)
+        for dir in self._dirs[:]:
+            if dir.startswith(dirname):
+                self._dirs.remove(dir)
+        return files

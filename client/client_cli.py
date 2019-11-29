@@ -1,4 +1,3 @@
-import requests
 import os
 
 from client.client_utils import *
@@ -16,7 +15,9 @@ def show_help(*unused):
         "$ put <file> <destination> : put a local file to the remote filesystem\n"
         "$ cd <destination>         : change remote pwd to a destination dir\n"
         "$ mkdir <directory>        : create a specified dir\n"
-        "$ get <file> <destination> : put a remote file to local filesystem"
+        "$ get <file> <destination> : put a remote file to a local filesystem\n"
+        "$ ls [destination]         : list file information for a destination, no [destination] == '.'\n"
+        "Note:\n<required_positional_operand>, [optional_operand]\n"
     )
 
 
@@ -67,7 +68,7 @@ def put_file(*args):
             # Request to store a file in the filesystem
             # Request structure: /file?filename=<path>
             resp = requests.post(os.path.join(MASTER_NODE, f"file?filename={path}"))
-            if check_response(resp):
+            if check_response(resp, pretty_print_enabled=True):
                 content = resp.json()
                 nodes = content["datanodes"]  # Available storage datanodes
                 file = content[
@@ -90,14 +91,14 @@ def change_dir(*args):
     if check_args("cd", args, required_operands=["destination"]):
         destination = make_abs(args[1])
         resp = requests.get(os.path.join(MASTER_NODE, f"directory?name={destination}"))
-        if check_response(resp):
+        if check_response(resp, pretty_print_enabled=True):
             set_pwd(destination)
 
 
 def make_dir(*args):
     """
     Change remote pwd to a destination folder
-    :param args: cd <destination>
+    :param args: mkdir <destination>
     :return:
     """
     if check_args("mkdir", args, required_operands=["destination"]):
@@ -127,6 +128,35 @@ def read_file(*args):
                     print("Error while saving on local filesystem")
 
 
+def remove_file_or_dir(*args):
+    if check_args("rm", args, ["file_or_dir"]):
+        fpath = make_abs(args[1])
+        pass
+        # get directory info {files:[], dirs:[]} via get /directory?name={}
+        # if file call on master delete /file?filename
+        # if dir 1) check if not empty via get /directory?name={} 2)
+        # call delete /directory?name={}
+
+
+def list_dir(*args):
+    """
+    List file information
+    :param args: ls [destination]
+    :return:
+    """
+    if check_args("ls", args, optional_operands=["destination"]):
+        if len(args) > 1:
+            destination = make_abs(args[1])
+        else:
+            destination = make_abs(".")
+
+        resp = requests.get(os.path.join(MASTER_NODE, f"directory?name={destination}"))
+        if not check_response(resp, pretty_print_enabled=True):
+            resp = requests.get(os.path.join(MASTER_NODE, f"file?filename={destination}"))
+            if not check_response(resp, pretty_print_enabled=True):
+                print(f"ls: cannot access '{destination}': No such file or directory")
+
+
 command_tree = {
     "help": show_help,
     "ping": ping_master_node,
@@ -136,18 +166,20 @@ command_tree = {
     "cd": change_dir,
     "mkdir": make_dir,
     "get": read_file,
+    "rm": remove_file_or_dir,
+    "ls": list_dir,
 }
 
 if __name__ == "__main__":
     print("Client is working , but run Master Node first")
     while True:
         print("Enter the command(type '$ help' to view the commands' description)")
-        args = input("$").split()
+        args = input("$ ").split()
         if len(args) == 0:
             continue
         try:
             command_tree[args[0]](*args)
         except KeyError:
-            print("No such command, please try again")
+            print(f"No such command '{args[0]}', please try again")
         except Exception:
             print("Command failed, please try again ")
