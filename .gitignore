@@ -8,5 +8,6 @@ cmake-build-*/
 out/
 .idea_modules/
 __pycache__/
-/storage/logs/
-/storage/data/
+/master/logs/
+/datanode/data/
+/datanode/logs

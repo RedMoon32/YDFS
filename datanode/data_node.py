@@ -4,13 +4,21 @@ import requests
 from flask import Flask, request, Response, jsonify
 import os
 import shutil
-from storage.utils import create_log
 
 app = Flask(__name__)
 
 PORT = 2020
 FILE_STORE = "./data"
-MASTER_NODE = "http://localhost:3030/"
+MASTER_NODE = os.getenv("MASTER_NODE", "http://localhost:3030")
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    status_code = 400
+    if isinstance(e, FileNotFoundError):
+        status_code = 404
+
+    return Response(str(e), status=status_code)
 
 
 @app.route("/ping")
@@ -113,7 +121,6 @@ def file():
 
 
 def init_node():
-    create_log(app, "data_node")
     if not os.path.exists(FILE_STORE):
         os.mkdir(FILE_STORE)
     try:

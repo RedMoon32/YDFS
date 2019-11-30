@@ -3,7 +3,7 @@ import pytest
 import os
 
 from shutil import rmtree
-from storage.data_node import app as data_node, FILE_STORE
+from datanode.data_node import app as data_node, FILE_STORE
 
 
 @pytest.fixture
@@ -15,8 +15,11 @@ def client():
 
 
 def init_storage_test():
-    rmtree(FILE_STORE)
-    os.mkdir(FILE_STORE)
+    if os.path.exists(FILE_STORE):
+        rmtree(FILE_STORE)
+        os.mkdir(FILE_STORE)
+    else:
+        os.mkdir(FILE_STORE)
 
 
 def test_filesystem_delete(client):
