@@ -2,6 +2,18 @@ import time
 import os
 
 
+class DataNode:
+    def __init__(self, ip, port):
+        self.ip = ip
+        self.port = int(port)
+
+    def __eq__(self, other):
+        return self.ip == other.ip and self.port == other.port
+
+    def serialize(self):
+        return {"ip": self.ip, "port": self.port}
+
+
 class File:
     def __init__(self, file_name, id, nodes, file_info):
         self.name = file_name
@@ -19,9 +31,9 @@ class File:
 
     def __eq__(self, other):
         return (
-            self.name == other.name
-            and self.id == other.id
-            and self.file_info == other.file_info
+                self.name == other.name
+                and self.id == other.id
+                and self.file_info == other.file_info
         )
 
     def __hash__(self):

@@ -3,4 +3,3 @@ requests
 flask_api
 pytest
 pook
-pandas
