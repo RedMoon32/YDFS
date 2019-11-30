@@ -40,7 +40,7 @@ def test_file_location_to_store(client):
     assert "a.txt" in storage.master_node.fs._file_mapper
 
     resp = client.post("/file?filename=/b/a.txt")
-    assert resp.status_code == 400
+    assert resp.status_code == 404
 
     storage.master_node.fs._dirs.append("/b")
 

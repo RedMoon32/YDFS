@@ -113,9 +113,9 @@ def file():
             destination = request.args["destination"]
             fs.move_file(filename, destination)
             return Response(f"file '{filename}' was moved to '{destination}'", 200)
-        elif op == "cp":
+        elif op == "cp":  # ToDO: not copy, actually, but a draft for replication
             path = request.args["path"]
-            fs.copy_file(filename, path)
+            fs.copy_file(filename, path)  # ToDO: remove copying
             if not file:
                 return Response(f"file {filename} not found", status=404)
             target_file = fs.get_file(path)
@@ -126,7 +126,7 @@ def file():
                 node_address = f"{node.ip}:{node.port}"
                 app.logger.info(f"Synchronisation with datanode {node_address}")
                 resp = requests.put(os.path.join(node_address, f"file?filename={file.id}&"
-                                                               f"target={target_file.id}&"
+                                                               f"target={target_file.id}&"  # ToDO: remove 'target'
                                                                f"source_node={node_address}"))
                 if resp.status_code == 201:
                     app.logger.info(f"Success - datanode {node_address} copied file")

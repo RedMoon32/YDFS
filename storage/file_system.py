@@ -120,7 +120,7 @@ class FileSystem:
         else:
             raise FileNotFoundError(f"file '{file_name}' found")
 
-    def copy_file(self, file_name, new_file_name):
+    def copy_file(self, file_name, new_file_name):  # ToDO: remove copying
         destination = os.path.dirname(new_file_name)
 
         if not self.dir_exists(destination):
