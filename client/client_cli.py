@@ -11,7 +11,8 @@ def show_help(*unused):
         "Commands and arguments:\n"
         "ping                     : ping the filesystem\n"
         "init                     : initialize the storage\n"
-        "mv <file> <destination>  : move file to a given destination dir\n"
+        "mv <file> <destination>  : move a file to a given destination dir\n"
+        "cp <file> <target>       : move a file to a given target path containing a new filename\n"
         "put <file> <destination> : put a local file to the remote filesystem\n"
         "cd <destination>         : change remote pwd to a destination dir\n"
         "mkdir <directory>        : create a specified dir\n"
@@ -47,10 +48,29 @@ def move_file(*args):
         # Request structure: /file?filename=<name>&destination=<dest>
         resp = requests.put(
             os.path.join(
-                MASTER_NODE, f"file?filename={filename}&destination={destination}"
+                MASTER_NODE, f"file?operation=mv&filename={filename}&destination={destination}"
             )
         )
         check_response(resp, "mv")
+
+
+def copy_file(*args):
+    """
+    Copy a file to a target path
+    :param args: mv <file> <target>
+    :return:
+    """
+    if check_args("cp", args, required_operands=["file", "target"]):
+        filename = make_abs(args[1])
+        target = make_abs(args[2])
+        # Request to put a file to a new destination
+        # Request structure: /file?filename=<name>&destination=<dest>
+        resp = requests.put(
+            os.path.join(
+                MASTER_NODE, f"file?operation=cp&filename={filename}&path={target}"
+            )
+        )
+        check_response(resp, "cp")
 
 
 def put_file(*args):
@@ -198,6 +218,7 @@ command_tree = {
     "ping": ping_master_node,
     "init": initialize_filesystem,
     "mv": move_file,
+    "cp": copy_file,
     "put": put_file,
     "cd": change_dir,
     "mkdir": make_dir,
