@@ -5,12 +5,20 @@ from flask import Flask, request, Response, jsonify
 import os
 import shutil
 
-
 app = Flask(__name__)
 
 PORT = 2020
 FILE_STORE = "./data"
 MASTER_NODE = os.getenv("MASTER_NODE", "http://localhost:3030")
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    status_code = 400
+    if isinstance(e, FileNotFoundError):
+        status_code = 404
+
+    return Response(str(e), status=status_code)
 
 
 @app.route("/ping")
