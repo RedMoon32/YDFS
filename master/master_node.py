@@ -6,9 +6,8 @@ import requests
 import os
 
 from requests.exceptions import ConnectionError
-from data.data_node_utils import DataNode
-from storage.file_system import FileSystem, File
-from storage.utils import create_log
+from file_system import FileSystem, File, DataNode
+from utils import create_log
 from math import ceil
 
 app = Flask(__name__)

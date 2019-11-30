@@ -80,7 +80,6 @@ def file():
 
 
 def init_node():
-
     if not os.path.exists(FILE_STORE):
         os.mkdir(FILE_STORE)
     try:
