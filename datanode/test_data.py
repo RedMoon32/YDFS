@@ -3,7 +3,7 @@ import pytest
 import os
 
 from shutil import rmtree
-from storage.data_node import app as data_node, FILE_STORE
+from datanode.data_node import app as data_node, FILE_STORE
 
 
 @pytest.fixture

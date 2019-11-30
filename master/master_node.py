@@ -6,7 +6,7 @@ import requests
 import os
 
 from requests.exceptions import ConnectionError
-from storage.data_node_utils import DataNode
+from data.data_node_utils import DataNode
 from storage.file_system import FileSystem, File
 from storage.utils import create_log
 from math import ceil
