@@ -92,17 +92,45 @@ def file():
             os.remove(fpath)
             return Response(status=200)
 
-    # this is for coping file
+    # this is for coping file from this or other node, under this, or other name 🤡
+    # format is:
+    # /file?sourcenode=<source_node_address> – optional, if none, means that copy from this node
+    #      &filename=<source_file> – name of the file which should be copied
+    #      &target=<target_file> – optional, if none, same name, as original
     elif request.method == "PUT":
         try:
             target = request.args["target"]
+            # for replication ease
+            if target is None:
+                target = filename
             if '/' in target:
                 return Response('/ are not allowed in file name!', 400)
             target_path = os.path.join(FILE_STORE, target)
             if os.path.exists(target_path):
                 return Response(f"File already exists", 400)
-            if not os.path.exists(fpath):
-                return Response(f"File doesnt exists", 404)
+
+            print("OK")
+            try:
+                source_node = request.args["target"]
+            except Exception as e:
+                print(e)
+                print(source_node)
+            if source_node is None:
+                print("OK")
+                if not os.path.exists(fpath):
+                    return Response(f"File doesnt exists", 404)
+                shutil.copy(fpath, target_path)
+            else:
+                print("not OK")
+                resp = requests.get(os.path.join(source_node, f"file?filename={filename}"))
+                if resp.status_code == 200:
+                    try:
+                        f = open(target_path, "wb")
+                        f.write(resp.content)
+                    except:
+                        return Response("Error while saving on local filesystem", 400)
+                else:
+                    return Response("Error with requesting file from source_node, it returned: " + resp.status_code, 400)
 
             try:
                 # say master that new file was created on datanode
@@ -118,10 +146,9 @@ def file():
                     "Error while sending approving request to master node", status=400
                 )
 
-            shutil.copy(fpath, target_path)
             return Response(status=201)
         except Exception as e:
-            return Response(f"Error opening file ", 400)
+            return Response(f"Error during something ", 400)
 
 
 def init_node():

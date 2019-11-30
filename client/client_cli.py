@@ -44,10 +44,29 @@ def move_file(*args):
         filename = make_abs(args[1])
         destination = make_abs(args[2])
         # Request to put a file to a new destination
-        # Request structure: /file?filename=<name>&destination=<dest>
+        # Request structure: /file?op=<operation>&filename=<name>&destination=<dest>
         resp = requests.put(
             os.path.join(
-                MASTER_NODE, f"file?filename={filename}&destination={destination}"
+                MASTER_NODE, f"file?operation=mv&filename={filename}&destination={destination}"
+            )
+        )
+        check_response(resp)
+
+
+def copy_file(*args):
+    """
+    Copy a file to a destination file
+    :param args: mv <source_file> <target_file>
+    :return:
+    """
+    if check_args("cp", args, required_operands=["source_file", "target_file"]):
+        source_file = make_abs(args[1])
+        target_file = make_abs(args[2])
+        # Request to put a file to a new destination
+        # Request structure: /file?op=<operation>&source=<source_file>&target=<target_file>
+        resp = requests.put(
+            os.path.join(
+                MASTER_NODE, f"file?operation=cp&filename={source_file}&target={target_file}"
             )
         )
         check_response(resp)
@@ -196,6 +215,7 @@ command_tree = {
     "ping": ping_master_node,
     "init": initialize_filesystem,
     "mv": move_file,
+    "cp": copy_file,
     "put": put_file,
     "cd": change_dir,
     "mkdir": make_dir,

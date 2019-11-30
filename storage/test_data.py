@@ -97,6 +97,7 @@ def test_file_copy(client):
     client.post("/file?filename=1", data=data)
 
     resp = client.put("/file?filename=1&target=2")
+    print(resp.data)
     assert resp.status_code == 201
 
     resp = client.put("/file?filename=1&target=2")

@@ -114,7 +114,7 @@ def file():
             destination = request.args["destination"]
             new_file_name = os.path.join(destination, os.path.basename(filename))
             if fs.dir_exists(destination) and not fs.file_exists(new_file_name):
-                fs.rename_file(filename, new_file_name)
+                fs.move_file(filename, new_file_name)
                 return Response(status=200)
             else:
                 return Response("Output folder path does not exists", 404)
@@ -133,7 +133,8 @@ def file():
             for node in target_file.nodes:
                 node_address = f"{node.ip}:{node.port}"
                 app.logger.info(f"Synchronisation with datanode {node_address}")
-                resp = requests.put(os.path.join(node_address, f"file?filename={source_file.id}&target={target_file.id}"))
+                resp = requests.put(os.path.join(node_address, f"file?filename={source_file.id}&"
+                                                               f"target={target_file.id}"))
                 if resp.status_code == 201:
                     app.logger.info(f"Success - datanode {node_address} copied file")
                 else:
