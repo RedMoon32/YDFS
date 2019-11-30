@@ -11,7 +11,8 @@ def show_help(*unused):
         "Commands and arguments:\n"
         "ping                     : ping the filesystem\n"
         "init                     : initialize the storage\n"
-        "mv <file> <destination>  : move file to a given destination dir\n"
+        "mv <file> <destination>  : move a file to a given destination dir\n"
+        "cp <file> <target>       : move a file to a given target path containing a new filename\n"
         "put <file> <destination> : put a local file to the remote filesystem\n"
         "cd <destination>         : change remote pwd to a destination dir\n"
         "mkdir <directory>        : create a specified dir\n"
@@ -47,10 +48,45 @@ def move_file(*args):
         # Request structure: /file?filename=<name>&destination=<dest>
         resp = requests.put(
             os.path.join(
-                MASTER_NODE, f"file?filename={filename}&destination={destination}"
+                MASTER_NODE, f"file?operation=mv&filename={filename}&destination={destination}"
             )
         )
         check_response(resp, "mv")
+
+
+def copy_file(*args):
+    """
+    Copy a file to a target path
+    :param args: mv <file> <target>
+    :return:
+    """
+    if check_args("cp", args, required_operands=["file", "target_path"]):
+        fpath = make_abs(args[1])
+        resp = requests.get(os.path.join(MASTER_NODE, f"file?filename={fpath}"))
+        if check_response(resp, "get", print_content=False):
+            data = resp.json()
+            resp = request_datanodes(
+                data["file"]["nodes"], f"file?filename={data['file']['file_id']}", "GET"
+            )
+            if check_response(resp, "get", print_content=False):
+                data = resp.content
+                path = make_abs(args[2])
+
+                # Request to store a file in the filesystem
+                # Request structure: /file?filename=<path>
+                resp = requests.post(os.path.join(MASTER_NODE, f"file?filename={path}"))
+                if check_response(resp, "cp", print_content=False):
+                    content = resp.json()
+                    nodes = content["datanodes"]  # Available storage datanodes
+                    file = content[
+                        "file"
+                    ]  # View of a file from the perspective of a masternode
+                    if data:
+                        # Request to store a file in the storage
+                        # Request structure: /file?filename=<filename>
+                        request_datanodes(
+                            nodes, f'file?filename={file["file_id"]}', "POST", data=data
+                        )
 
 
 def put_file(*args):
@@ -198,6 +234,7 @@ command_tree = {
     "ping": ping_master_node,
     "init": initialize_filesystem,
     "mv": move_file,
+    "cp": copy_file,
     "put": put_file,
     "cd": change_dir,
     "mkdir": make_dir,

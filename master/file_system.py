@@ -1,5 +1,6 @@
 import time
 import os
+import copy
 
 
 class DataNode:
@@ -52,9 +53,11 @@ class FileSystem:
 
     def add_file(self, filename) -> File:
         if filename in self._file_mapper:
-            raise Exception(f"file '{filename}' already exists")
+            raise FileExistsError(f"file '{filename}' already exists")
         if not self.dir_exists(os.path.dirname(filename)):
-            raise Exception(f"directory '{os.path.dirname(filename)}' not found")
+            raise FileNotFoundError(f"directory '{os.path.dirname(filename)}' not found")
+        if self.dir_exists(filename):
+            raise FileExistsError(f"already exists the directory named '{filename}', forgot to specify a filename?")
         else:
             self._id += 1
             new_file = File(filename, self._id, [], {"created_at": time.time()})
@@ -126,6 +129,28 @@ class FileSystem:
         if file_name in self._file_mapper:
             self._file_mapper[new_file_name] = self._file_mapper.pop(file_name)
             self._file_mapper[new_file_name].name = new_file_name
+        else:
+            raise FileNotFoundError(f"file '{file_name}' found")
+
+    def copy_file(self, file_name, new_file_name):  # ToDO: remove copying
+        destination = os.path.dirname(new_file_name)
+
+        if not self.dir_exists(destination):
+            raise FileNotFoundError(f"directory '{destination}' not found")
+
+        if self.dir_exists(new_file_name):
+            raise FileExistsError(f"already exists the directory named '{new_file_name}', forgot to specify a filename?")
+
+        if self.get_file(new_file_name):
+            raise FileExistsError(f"file '{new_file_name}' already exists")
+
+        if file_name in self._file_mapper:
+            self._id += 1
+            self._file_mapper[new_file_name] = copy.deepcopy(self.get_file(file_name))
+            self._file_mapper[new_file_name].id = self._id
+            self._file_mapper[new_file_name].file_info["created_at"] = time.time()
+            self._file_mapper[new_file_name].name = new_file_name
+            self._file_id_mapper[self._id] = self._file_mapper[new_file_name]
         else:
             raise FileNotFoundError(f"file '{file_name}' found")
 

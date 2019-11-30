@@ -41,7 +41,7 @@ def request_datanode(datanode, command, method):
                 resp = requests.delete(os.path.join(node_address, command))
             return resp
         except Exception as e:
-            print(f"DataNode {node_address} connection failed")
+            app.logger.info(f"DataNode {node_address} connection failed")
     drop_datanode(datanode)
     return None
 
@@ -98,7 +98,7 @@ def file():
 
     if request.method == "GET":
         if not file:
-            return Response("file not found", status=404)
+            return Response(f"file {filename} not found", status=404)
         else:
             return jsonify({"file": file.serialize()})
 
@@ -107,9 +107,37 @@ def file():
         return jsonify({"datanodes": choose_datanodes(), "file": file.serialize()})
 
     elif request.method == "PUT":
-        destination = request.args["destination"]
-        fs.move_file(filename, destination)
-        return Response(f"file '{filename}' was moved to '{destination}'", 200)
+        op = request.args["operation"]
+        if op == "mv":
+            destination = request.args["destination"]
+            fs.move_file(filename, destination)
+            return Response(f"file '{filename}' was moved to '{destination}'", 200)
+        elif op == "cp":  # ToDO: not copy, actually, but a draft for replication
+            path = request.args["path"]
+            fs.copy_file(filename, path)  # ToDO: remove copying
+            if not file:
+                return Response(f"file {filename} not found", status=404)
+            target_file = fs.get_file(path)
+            if len(target_file.nodes) == 0:
+                return Response(f"file {filename} location is not available for copying, wait a bit", status=404)
+
+            for node in target_file.nodes:
+                node_address = f"{node.ip}:{node.port}"
+                app.logger.info(f"Synchronisation with datanode {node_address}")
+                resp = requests.put(os.path.join(node_address, f"file?filename={file.id}&"
+                                                               f"target={target_file.id}&"  # ToDO: remove 'target'
+                                                               f"source_node={node_address}"))
+                if resp.status_code == 201:
+                    app.logger.info(f"Success - datanode {node_address} copied file")
+                else:
+                    app.logger.info(f"Datanode {node_address} failed to copy file")
+                    target_file.nodes.remove(node_address)
+            if not target_file.nodes:
+                return Response("All datanodes failed to copy file", 400)
+
+            return Response(f"file '{filename}' was copied to '{path}'", 201)
+        else:
+            return Response("Wrong operation code, request should include 'op=<operation_code>'", 400)
 
     elif request.method == "DELETE":
         if not file:
