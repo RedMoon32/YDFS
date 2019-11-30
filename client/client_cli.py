@@ -60,17 +60,33 @@ def copy_file(*args):
     :param args: mv <file> <target>
     :return:
     """
-    if check_args("cp", args, required_operands=["file", "target"]):
-        filename = make_abs(args[1])
-        target = make_abs(args[2])
-        # Request to put a file to a new destination
-        # Request structure: /file?filename=<name>&destination=<dest>
-        resp = requests.put(
-            os.path.join(
-                MASTER_NODE, f"file?operation=cp&filename={filename}&path={target}"
+    if check_args("cp", args, required_operands=["file", "target_path"]):
+        fpath = make_abs(args[1])
+        resp = requests.get(os.path.join(MASTER_NODE, f"file?filename={fpath}"))
+        if check_response(resp, "get", print_content=False):
+            data = resp.json()
+            resp = request_datanodes(
+                data["file"]["nodes"], f"file?filename={data['file']['file_id']}", "GET"
             )
-        )
-        check_response(resp, "cp")
+            if check_response(resp, "get", print_content=False):
+                data = resp.content
+                path = make_abs(args[2])
+
+                # Request to store a file in the filesystem
+                # Request structure: /file?filename=<path>
+                resp = requests.post(os.path.join(MASTER_NODE, f"file?filename={path}"))
+                if check_response(resp, "cp", print_content=False):
+                    content = resp.json()
+                    nodes = content["datanodes"]  # Available storage datanodes
+                    file = content[
+                        "file"
+                    ]  # View of a file from the perspective of a masternode
+                    if data:
+                        # Request to store a file in the storage
+                        # Request structure: /file?filename=<filename>
+                        request_datanodes(
+                            nodes, f'file?filename={file["file_id"]}', "POST", data=data
+                        )
 
 
 def put_file(*args):

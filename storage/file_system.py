@@ -41,9 +41,11 @@ class FileSystem:
 
     def add_file(self, filename) -> File:
         if filename in self._file_mapper:
-            raise Exception(f"file '{filename}' already exists")
+            raise FileExistsError(f"file '{filename}' already exists")
         if not self.dir_exists(os.path.dirname(filename)):
-            raise Exception(f"directory '{os.path.dirname(filename)}' not found")
+            raise FileNotFoundError(f"directory '{os.path.dirname(filename)}' not found")
+        if self.dir_exists(filename):
+            raise FileExistsError(f"already exists the directory named '{filename}', forgot to specify a filename?")
         else:
             self._id += 1
             new_file = File(filename, self._id, [], {"created_at": time.time()})
