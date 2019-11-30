@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 PORT = 2020
 FILE_STORE = "./data"
-MASTER_NODE = "http://localhost:3030/"
+MASTER_NODE = os.getenv("MASTER_NODE", "http://localhost:3030")
 
 
 @app.route("/ping")
