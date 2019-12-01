@@ -16,7 +16,10 @@ data_nodes = []
 
 fs = FileSystem()
 MAX_REQUEST_COUNT = 3
+PORT = 3030
 LOAD_FACTOR = 0.5  # fraction of datanodes to provide to a client at once
+MAX_DATANODE_CAPACITY = 5 * 1024 * 1024  # max available memory on each Data Node
+free_memory = 0  # free storage memory in bytes
 
 
 @app.errorhandler(Exception)
@@ -68,6 +71,15 @@ def ping():
     return "Hello, Master Node is Alive!"
 
 
+@app.route("/status")
+def status():
+    return jsonify({
+        "Free Space": f"{free_memory}B",
+        "Master Node Address": f"{request.remote_addr}:{PORT}",
+        "Available Data Nodes": [node.serialize() for node in data_nodes]
+    })
+
+
 @app.route("/datanode", methods=["POST"])
 def datanode():
     host, port = f"http://{request.remote_addr}", request.args["port"]
@@ -86,7 +98,10 @@ def filesystem():
         for d in data_nodes:
             request_datanode(d, "filesystem", request.method)
         if len(data_nodes) > 0:
-            return Response("Storage is initialized and ready", 200)
+            return Response(
+                f"Storage is initialized and ready, available disk space is "
+                f"{MAX_DATANODE_CAPACITY * len(data_nodes)}B.", 200
+            )
         else:
             return Response("Storage is unavailable", 400)
 
@@ -192,6 +207,7 @@ def ping_data_nodes():
     time.sleep(5)
     while True:
 
+        total_occupied = 0
         for cur_node in data_nodes:
             files = fs.get_all_files()
             file_ids = {"files": fs.get_all_ids()}
@@ -204,6 +220,10 @@ def ping_data_nodes():
                 )
                 app.logger.info(f"Success - datanode {node_address} is alive")
                 data_file_ids = resp.json()["files"]
+
+                file_sizes = resp.json()["file_sizes"]
+                total_occupied += sum(file_sizes)
+
                 for file_id in data_file_ids:
                     file = fs.get_file_by_id(int(file_id))
                     # update info that data node has some new file
@@ -229,6 +249,9 @@ def ping_data_nodes():
             except ConnectionError as e:
                 app.logger.info(f"datanode '{node_address}' synchronisation failed")
                 drop_datanode(cur_node)
+
+        global free_memory
+        free_memory = len(data_nodes) * MAX_DATANODE_CAPACITY - total_occupied
         time.sleep(5)
 
 
@@ -236,5 +259,5 @@ if __name__ == "__main__":
     create_log(app, "master_node")
     ping_thread = threading.Thread(target=ping_data_nodes)
     ping_thread.start()
-    app.run(host="0.0.0.0", port=3030)
+    app.run(host="0.0.0.0", port=PORT)
     ping_thread.join()

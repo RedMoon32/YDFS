@@ -47,7 +47,10 @@ def filesystem():
                 app.logger.info(
                     f"Deleting File with fid={fid} as file not found on master"
                 )
-        return jsonify({"files": [int(fid) for fid in os.listdir(FILE_STORE)]})
+        return jsonify({
+            "files": [int(fid) for fid in os.listdir(FILE_STORE)],
+            "file_sizes": [os.path.getsize(os.path.join(FILE_STORE, fid)) for fid in os.listdir(FILE_STORE)]
+        })
 
 
 @app.route("/file", methods=["GET", "POST", "PUT", "DELETE"])

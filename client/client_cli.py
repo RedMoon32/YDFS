@@ -29,6 +29,12 @@ def ping_master_node(*unused):
     check_response(resp, "ping")
 
 
+def status(*unused):
+    """Check master_node status"""
+    resp = requests.get(os.path.join(MASTER_NODE, "status"))
+    check_response(resp, "status", pretty_print_enabled=True)
+
+
 def initialize_filesystem(*unused):
     """Clear filesystem, prepare it for work"""
     resp = requests.delete(os.path.join(MASTER_NODE, "filesystem"))
@@ -232,6 +238,7 @@ def list_dir(*args):
 command_tree = {
     "help": show_help,
     "ping": ping_master_node,
+    "status": status,
     "init": initialize_filesystem,
     "mv": move_file,
     "cp": copy_file,
