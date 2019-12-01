@@ -1,69 +1,18 @@
-from flask import Flask, jsonify, Response, request
-from random import choices
+import os
 import threading
 import time
+
 import requests
-import os
-
+from flask import jsonify, Response, request
 from requests.exceptions import ConnectionError
-from file_system import FileSystem, File, DataNode
-from utils import create_log
-from math import ceil
 
-app = Flask(__name__)
+from file_system import File, DataNode
+from utils import app, create_log, data_nodes, request_datanode, choose_datanodes, drop_datanode, fs
 
-data_nodes = []
-
-fs = FileSystem()
-MAX_REQUEST_COUNT = 3
+DEBUG = False
 PORT = 3030
-LOAD_FACTOR = 0.5  # fraction of datanodes to provide to a client at once
 MAX_DATANODE_CAPACITY = 5 * 1024 * 1024  # max available memory on each Data Node
 free_memory = 0  # free storage memory in bytes
-
-
-@app.errorhandler(Exception)
-def handle_exception(e):
-    status_code = 400
-    if isinstance(e, FileNotFoundError):
-        status_code = 404
-
-    return Response(str(e), status=status_code)
-
-
-def request_datanode(datanode, command, method):
-    node_address = f"{datanode.ip}:{datanode.port}"
-    resp = None
-    for try_counter in range(MAX_REQUEST_COUNT):
-        try:
-            if method == "GET":
-                resp = requests.get(os.path.join(node_address, command))
-            elif method == "POST":
-                resp = requests.post(os.path.join(node_address, command))
-            elif method == "DELETE":
-                resp = requests.delete(os.path.join(node_address, command))
-            return resp
-        except Exception as e:
-            app.logger.info(f"DataNode {node_address} connection failed")
-    drop_datanode(datanode)
-    return None
-
-
-def drop_datanode(datanode):
-    for file in fs.get_all_files():
-        if datanode in file.nodes:
-            file.nodes.remove(datanode)
-            app.logger.info(
-                f"Removing file {file.name} in database from {datanode.ip}:{datanode.port}"
-            )
-    data_nodes.remove(datanode)
-    app.logger.info(f"Removed not responding datanode {datanode.ip}:{datanode.port}")
-
-
-def choose_datanodes():
-    k = ceil(len(data_nodes) * LOAD_FACTOR)  # how much data_nodes to choose
-    # Serialize each randomly chosen datanode and return a list of such datanodes
-    return list(map(lambda node: node.serialize(), choices(data_nodes, k=k)))
 
 
 @app.route("/ping")
@@ -73,6 +22,7 @@ def ping():
 
 @app.route("/status")
 def status():
+    app.logger.info(f"Sent filesystem data to a client")
     return jsonify({
         "Free Space": f"{free_memory}B",
         "Master Node Address": f"{request.remote_addr}:{PORT}",
@@ -86,6 +36,7 @@ def datanode():
     new_datanode = DataNode(host, port)
     if new_datanode not in data_nodes:
         data_nodes.append(new_datanode)
+        app.logger.info(f"Add a new Data Node {new_datanode.ip}:{new_datanode.port}")
         return Response(status=201)
     else:
         return Response(status=400)
@@ -98,11 +49,12 @@ def filesystem():
         for d in data_nodes:
             request_datanode(d, "filesystem", request.method)
         if len(data_nodes) > 0:
-            return Response(
-                f"Storage is initialized and ready, available disk space is "
-                f"{MAX_DATANODE_CAPACITY * len(data_nodes)}B.", 200
-            )
+            message = f"Storage is initialized and ready, available disk space is " \
+                      f"{MAX_DATANODE_CAPACITY * len(data_nodes)}B."
+            app.logger.info(message)
+            return Response(message, 200)
         else:
+            app.logger.info("Storage is unavailable")
             return Response("Storage is unavailable", 400)
 
 
@@ -113,12 +65,15 @@ def file():
 
     if request.method == "GET":
         if not file:
-            return Response(f"file {filename} not found", status=404)
+            app.logger.info(f"File '{filename}' data was requested but file not found")
+            return Response(f"file '{filename}' not found", status=404)
         else:
+            app.logger.info(f"Sent the file '{filename}' data to a client")
             return jsonify({"file": file.serialize()})
 
     elif request.method == "POST":
         file: File = fs.add_file(filename)
+        app.logger.info(f"Added file '{filename}' to the filesystem")
         return jsonify({"datanodes": choose_datanodes(), "file": file.serialize()})
 
     elif request.method == "PUT":
@@ -126,29 +81,33 @@ def file():
         if op == "mv":
             destination = request.args["destination"]
             fs.move_file(filename, destination)
+            app.logger.info(f"File '{filename}' was moved to '{destination}'")
             return Response(f"file '{filename}' was moved to '{destination}'", 200)
         elif op == "cp":  # ToDO: not copy, actually, but a draft for replication
             path = request.args["path"]
             fs.copy_file(filename, path)  # ToDO: remove copying
             if not file:
+                app.logger.info(f"File '{filename}' was requested to move but file not found")
                 return Response(f"file {filename} not found", status=404)
             target_file = fs.get_file(path)
             if len(target_file.nodes) == 0:
-                return Response(f"file {filename} location is not available for copying, wait a bit", status=404)
+                app.logger.info(f"File {filename} location is not available for replication, wait a bit")
+                return Response(f"file {filename} location is not available for replication, wait a bit", status=404)
 
             for node in target_file.nodes:
                 node_address = f"{node.ip}:{node.port}"
-                app.logger.info(f"Synchronisation with datanode {node_address}")
+                app.logger.debug(f"Synchronisation with the Data Node {node_address}")
                 resp = requests.put(os.path.join(node_address, f"file?filename={file.id}&"
                                                                f"target={target_file.id}&"  # ToDO: remove 'target'
                                                                f"source_node={node_address}"))
                 if resp.status_code == 201:
-                    app.logger.info(f"Success - datanode {node_address} copied file")
+                    app.logger.debug(f"Success - Data Node {node_address} copied file")
                 else:
-                    app.logger.info(f"Datanode {node_address} failed to copy file")
+                    app.logger.info(f"Data Node {node_address} failed to copy file")
                     target_file.nodes.remove(node_address)
             if not target_file.nodes:
-                return Response("All datanodes failed to copy file", 400)
+                app.logger.info("All Data Nodes failed to replicate file")
+                return Response("All Data Nodes failed to replicate file", 400)
 
             return Response(f"file '{filename}' was copied to '{path}'", 201)
         else:
@@ -156,11 +115,13 @@ def file():
 
     elif request.method == "DELETE":
         if not file:
+            app.logger.info(f"File '{filename}' was requested to delete but file not found")
             return Response(f"file '{filename}' not found", status=404)
         else:
             for dnode in file.nodes:
                 request_datanode(dnode, f"file?filename={file.id}", "DELETE")
             fs.remove_file(filename)
+            app.logger.info(f"File '{filename}' was deleted")
             return Response(f"file '{filename}' was deleted", 200)
 
 
@@ -176,11 +137,14 @@ def directory():
 
     if request.method == "POST":
         fs.add_directory(dirname)
+        app.logger.info(f"Directory '{dirname}' created")
         return Response(f"directory '{dirname}' created", 201)
 
     elif request.method == "GET":
         if not fs.dir_exists(dirname):
+            app.logger.info(f"Directory '{dirname}' data was requested but it does not exist")
             return Response(f"directory '{dirname}' does not exist", 404)
+        app.logger.info(f"Sent the directory '{dirname}' data to a client")
         return jsonify(
             {
                 "files": list(map(File.serialize, fs.get_files(dirname))),
@@ -189,14 +153,17 @@ def directory():
         )
     elif request.method == "DELETE":
         if not fs.dir_exists(dirname):
+            app.logger.info(f"Directory '{dirname}' was requested to delete but it does not exist")
             return Response(f"directory '{dirname}' does not exist", 404)
         if dirname == '/':
+            app.logger.info(f"Directory '{dirname}' was requested to delete but root directory cannot be deleted")
             return Response("cannot remove root directory", 400)
         rm_list = fs.remove_dir(dirname)
         for file in rm_list:
             for dnode in file.nodes:
                 request_datanode(dnode, f"file?filename={file.id}", "DELETE")
             fs.remove_file(file.name)
+        app.logger.info(f"Directory '{dirname}' and all its sub-folders and files were deleted")
         return Response(
             f"directory '{dirname}' and all its sub-folders and files were deleted",
             status=200,
@@ -213,12 +180,12 @@ def ping_data_nodes():
             file_ids = {"files": fs.get_all_ids()}
 
             node_address = f"{cur_node.ip}:{cur_node.port}"
-            app.logger.info(f"Synchronisation with datanode {node_address}")
+            app.logger.debug(f"Synchronisation with datanode {node_address}")
             try:
                 resp = requests.get(
                     os.path.join(node_address, "filesystem"), json=file_ids
                 )
-                app.logger.info(f"Success - datanode {node_address} is alive")
+                app.logger.debug(f"Success - datanode {node_address} is alive")
                 data_file_ids = resp.json()["files"]
 
                 file_sizes = resp.json()["file_sizes"]
@@ -229,25 +196,25 @@ def ping_data_nodes():
                     # update info that data node has some new file
                     if file is None:
                         app.logger.info(
-                            f"Sent request to delete unknown file {file_id} on datanode {node_address}"
+                            f"Sent request to delete unknown file {file_id} from the Data Node {node_address}"
                         )
                         request_datanode(cur_node, f"file?filename={file_id}", "DELETE")
                         continue
                     if not cur_node in file.nodes:
                         app.logger.info(
-                            f"New file found on datanode {node_address} - {file.name}"
+                            f"New file found on the Data Node {node_address} - {file.name}"
                         )
                         file.nodes.append(cur_node)
                 for file in files:
                     # update info that data node does not have some file
                     if cur_node in file.nodes and file.id not in data_file_ids:
                         app.logger.info(
-                            f"File {file.name} not found on datanode, deleting from database"
+                            f"File {file.name} not found on the Data Node {node_address}, deleting from database"
                         )
                         file.nodes.remove(cur_node)
 
             except ConnectionError as e:
-                app.logger.info(f"datanode '{node_address}' synchronisation failed")
+                app.logger.info(f"Data Node '{node_address}' synchronisation failed")
                 drop_datanode(cur_node)
 
         global free_memory
@@ -256,8 +223,8 @@ def ping_data_nodes():
 
 
 if __name__ == "__main__":
-    create_log(app, "master_node")
+    create_log(app, "master_node", debug=DEBUG)
     ping_thread = threading.Thread(target=ping_data_nodes)
     ping_thread.start()
-    app.run(host="0.0.0.0", port=PORT)
+    app.run(host="0.0.0.0", port=PORT, debug=DEBUG)
     ping_thread.join()
