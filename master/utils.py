@@ -7,8 +7,8 @@ from random import choices
 import requests
 from flask import Flask, Response
 
-from master.master_node import REPLICATION_FACTOR
-from master.file_system import FileSystem
+from master_node import REPLICATION_FACTOR
+from file_system import FileSystem
 
 app = Flask(__name__)
 fs = FileSystem()

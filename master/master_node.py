@@ -6,8 +6,8 @@ import requests
 from flask import jsonify, Response, request
 from requests.exceptions import ConnectionError
 
-from master.file_system import File, DataNode
-from master.utils import app, create_log, data_nodes, request_datanode, choose_datanodes, \
+from file_system import File, DataNode
+from utils import app, create_log, data_nodes, request_datanode, choose_datanodes, \
     choose_datanodes_for_replication, drop_datanode, fs
 
 DEBUG = False
