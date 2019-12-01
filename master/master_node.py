@@ -71,6 +71,7 @@ def file():
             return Response(f"file '{filename}' not found", status=404)
         else:
             app.logger.info(f"Sent the file '{filename}' data to a client")
+            file.file_info["last_accessed"] = time.time()
             return jsonify({"file": file.serialize()})
 
     elif request.method == "POST":
@@ -79,41 +80,10 @@ def file():
         return jsonify({"datanodes": choose_datanodes(), "file": file.serialize()})
 
     elif request.method == "PUT":
-        op = request.args["operation"]
-        if op == "mv":
-            destination = request.args["destination"]
-            fs.move_file(filename, destination)
-            app.logger.info(f"File '{filename}' was moved to '{destination}'")
-            return Response(f"file '{filename}' was moved to '{destination}'", 200)
-        elif op == "cp":  # ToDO: not copy, actually, but a draft for replication
-            path = request.args["path"]
-            fs.copy_file(filename, path)  # ToDO: remove copying
-            if not file:
-                app.logger.info(f"File '{filename}' was requested to move but file not found")
-                return Response(f"file {filename} not found", status=404)
-            target_file = fs.get_file(path)
-            if len(target_file.nodes) == 0:
-                app.logger.info(f"File {filename} location is not available for replication, wait a bit")
-                return Response(f"file {filename} location is not available for replication, wait a bit", status=404)
-
-            for node in target_file.nodes:
-                node_address = f"{node.ip}:{node.port}"
-                app.logger.debug(f"Synchronisation with the Data Node {node_address}")
-                resp = requests.put(os.path.join(node_address, f"file?filename={file.id}&"
-                                                               f"target={target_file.id}&"  # ToDO: remove 'target'
-                                                               f"source_node={node_address}"))
-                if resp.status_code == 201:
-                    app.logger.debug(f"Success - Data Node {node_address} copied file")
-                else:
-                    app.logger.info(f"Data Node {node_address} failed to copy file")
-                    target_file.nodes.remove(node_address)
-            if not target_file.nodes:
-                app.logger.info("All Data Nodes failed to replicate file")
-                return Response("All Data Nodes failed to replicate file", 400)
-
-            return Response(f"file '{filename}' was copied to '{path}'", 201)
-        else:
-            return Response("Wrong operation code, request should include 'op=<operation_code>'", 400)
+        destination = request.args["destination"]
+        fs.move_file(filename, destination)
+        app.logger.info(f"File '{filename}' was moved to '{destination}'")
+        return Response(f"file '{filename}' was moved to '{destination}'", 200)
 
     elif request.method == "DELETE":
         if not file:
@@ -193,7 +163,7 @@ def ping_data_nodes():
                 file_sizes = resp.json()["file_sizes"]
                 total_occupied += sum(file_sizes)
 
-                for file_id in data_file_ids:
+                for (file_id, file_size) in zip(data_file_ids, file_sizes):
                     file = fs.get_file_by_id(int(file_id))
                     # update info that data node has some new file
                     if file is None:
@@ -207,6 +177,7 @@ def ping_data_nodes():
                             f"New file found on the Data Node {node_address} - {file.name}"
                         )
                         file.nodes.append(cur_node)
+                    file.file_info["size"] = file_size
                 for file in files:
                     # update info that data node does not have some file
                     if cur_node in file.nodes and file.id not in data_file_ids:

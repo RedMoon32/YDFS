@@ -124,18 +124,18 @@ def test_file_move(client):
     master_node.fs.add_file("a.txt")
     master_node.fs._dirs.append("/b")
 
-    resp = client.put("/file?operation=mv&filename=a.txt&destination=/b")
+    resp = client.put("/file?filename=a.txt&destination=/b")
     assert resp.status_code == 200
     assert master_node.fs.get_file("a.txt") is None
     assert master_node.fs.get_file("/b/a.txt") is not None
 
-    resp = client.put("/file?operation=mv&filename=/b/a.txt&destination=/b/c")
+    resp = client.put("/file?filename=/b/a.txt&destination=/b/c")
     assert resp.status_code == 404
 
     master_node.fs._dirs.append("/c")
     master_node.fs.add_file("/c/a.txt")
 
-    resp = client.put("/file?operation=mv&filename=/b/a.txt&destination=/c")
+    resp = client.put("/file?filename=/b/a.txt&destination=/c")
     assert resp.status_code == 400
 
 

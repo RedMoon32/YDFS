@@ -78,13 +78,9 @@ def file():
     # format is:
     # /file?sourcenode=<source_node_address> – optional, if none, means that copy from this node
     #      &filename=<source_file> – name of the file which should be copied
-    #      &target=<target_file> – optional, if none, same name, as original
     elif request.method == "PUT":
         try:
-            target = request.args["target"]
-            # for replication ease
-            if target is None:
-                target = filename
+            target = filename
             if '/' in target:
                 return Response('/ are not allowed in file name!', 400)
             target_path = os.path.join(FILE_STORE, target)
@@ -103,8 +99,7 @@ def file():
                     return Response("Error while saving on local filesystem", 400)
             else:
                 app.logger.info("Error with requesting file from source_node, it returned: " + resp.status_code)
-                return Response("Error with requesting file from source_node, it returned: " + resp.status_code,
-                                400)
+                return Response("Error with requesting file from source_node, it returned: " + resp.status_code, 400)
 
             app.logger.info(f"File '{fpath}' was replicated from source node '{source_node}'")
             return Response(status=201)
