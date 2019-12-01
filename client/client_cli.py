@@ -11,6 +11,7 @@ def show_help(*unused):
         "Commands and arguments:\n"
         "ping                     : ping the filesystem\n"
         "init                     : initialize the storage\n"
+        "status                   : view status of the filesystem\n"
         "mv <file> <destination>  : move a file to a given destination dir\n"
         "cp <file> <target>       : move a file to a given target path containing a new filename\n"
         "put <file> <destination> : put a local file to the remote filesystem\n"
