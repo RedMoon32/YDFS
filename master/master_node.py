@@ -6,12 +6,14 @@ import requests
 from flask import jsonify, Response, request
 from requests.exceptions import ConnectionError
 
-from file_system import File, DataNode
-from utils import app, create_log, data_nodes, request_datanode, choose_datanodes, drop_datanode, fs
+from master.file_system import File, DataNode
+from master.utils import app, create_log, data_nodes, request_datanode, choose_datanodes, \
+    choose_datanodes_for_replication, drop_datanode, fs
 
 DEBUG = False
 PORT = 3030
 MAX_DATANODE_CAPACITY = 5 * 1024 * 1024  # max available memory on each Data Node
+REPLICATION_FACTOR = 3
 free_memory = 0  # free storage memory in bytes
 
 
@@ -222,9 +224,25 @@ def ping_data_nodes():
         time.sleep(5)
 
 
+def replication_check():
+    time.sleep(6)
+    while True:
+        for file in fs.get_all_files:
+            if len(file.nodes) < REPLICATION_FACTOR:
+                nodes = choose_datanodes_for_replication(file.nodes)
+                for i in range(len(nodes)):
+                    target_node, source_node = nodes[i], file.nodes[i % len(file.nodes)]
+                    source_address = f"{source_node.ip}:{source_node.port}"
+                    request_datanode(target_node, f"?sourcenode={source_address}&filename={file.id}", "PUT")
+        time.sleep(5)
+
+
 if __name__ == "__main__":
     create_log(app, "master_node", debug=DEBUG)
     ping_thread = threading.Thread(target=ping_data_nodes)
     ping_thread.start()
+    repl_thread = threading.Thread(target=replication_check)
+    repl_thread.start()
     app.run(host="0.0.0.0", port=PORT, debug=DEBUG)
     ping_thread.join()
+    repl_thread.join()
