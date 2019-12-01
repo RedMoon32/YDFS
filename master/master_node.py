@@ -6,8 +6,8 @@ import requests
 import os
 
 from requests.exceptions import ConnectionError
-from master.file_system import FileSystem, File, DataNode
-from master.utils import create_log
+from file_system import FileSystem, File, DataNode
+from utils import create_log
 from math import ceil
 
 app = Flask(__name__)
@@ -98,7 +98,10 @@ def filesystem():
         for d in data_nodes:
             request_datanode(d, "filesystem", request.method)
         if len(data_nodes) > 0:
-            return Response("Storage is initialized and ready", 200)
+            return Response(
+                f"Storage is initialized and ready, available disk space is "
+                f"{MAX_DATANODE_CAPACITY * len(data_nodes)}B.", 200
+            )
         else:
             return Response("Storage is unavailable", 400)
 

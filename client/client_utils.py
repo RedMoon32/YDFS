@@ -13,16 +13,16 @@ def pretty_print(data):
         data = json.loads(data)
         for d in data:
             # Directories are stored just as list, not dictionary, hence can not be parsed in a usual way
-            if d == "dirs":
-                print("dirs :", data[d])
-            else:
+            try:
                 json_data = json_normalize(data[d])
                 if not json_data.empty:
                     print(d, ":")
                     print(json_data.to_string())
                 else:
                     print(d, ":", [])
-    except Exception as e:
+            except:
+                print(d, ":", data[d])
+    except:
         print("Response JSON parse error")
 
 
