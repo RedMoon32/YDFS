@@ -7,6 +7,7 @@ from random import choices
 import requests
 from flask import Flask, Response
 
+from master_node import REPLICATION_FACTOR
 from file_system import FileSystem
 
 app = Flask(__name__)
@@ -36,6 +37,8 @@ def request_datanode(datanode, command, method):
                 resp = requests.post(os.path.join(node_address, command))
             elif method == "DELETE":
                 resp = requests.delete(os.path.join(node_address, command))
+            elif method == "PUT":
+                resp = requests.put(os.path.join(node_address, command))
             return resp
         except Exception as e:
             app.logger.info(f"DataNode {node_address} connection failed")
@@ -58,6 +61,10 @@ def choose_datanodes():
     k = ceil(len(data_nodes) * LOAD_FACTOR)  # how much data_nodes to choose
     # Serialize each randomly chosen datanode and return a list of such datanodes
     return list(map(lambda node: node.serialize(), choices(data_nodes, k=k)))
+
+
+def choose_datanodes_for_replication(nodes_with_file):
+    return choices([x for x in data_nodes if x not in nodes_with_file], k=REPLICATION_FACTOR - len(nodes_with_file))
 
 
 def create_log(app, node_name, debug=False):
