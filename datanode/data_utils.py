@@ -23,11 +23,11 @@ def handle_exception(e):
 
 
 def create_log(app, node_name, debug=False):
-    if not os.path.exists("logs"):
-        os.mkdir("logs")
-    open(f"logs/{node_name}.log", "w+")
+    if not os.path.exists("./logs"):
+        os.mkdir("./logs")
+    open(f"./logs/{node_name}.log", "w+")
     file_handler = RotatingFileHandler(
-        f"logs/{node_name}.log", "a", 1 * 1024 * 1024, 10
+        f"./logs/{node_name}.log", "a", 1 * 1024 * 1024, 10
     )
     file_handler.setFormatter(
         logging.Formatter(
