@@ -220,8 +220,8 @@ def ping_data_nodes():
 def replication_check():
     while True:
         for file in fs.get_all_files():
-            if len(file.nodes) < REPLICATION_FACTOR and REPLICATION_FACTOR <= len(
-                data_nodes
+            if len(file.nodes) > 0 and len(file.nodes) < REPLICATION_FACTOR and REPLICATION_FACTOR <= len(
+                    data_nodes
             ):
                 nodes = choose_datanodes_for_replication(file.nodes)
                 for i in range(len(nodes)):

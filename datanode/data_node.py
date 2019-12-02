@@ -1,10 +1,12 @@
 import os
 import shutil
+import threading
+import time
 
 import requests
 from flask import request, Response, jsonify
 
-from data_utils import create_log, app, FILE_STORE, DEBUG, init_node
+from data_utils import create_log, app, FILE_STORE, DEBUG, init_node, MASTER_NODE, PORT
 
 
 @app.route("/ping")
@@ -136,6 +138,18 @@ def file():
             return Response(status=200)
 
 
+def ping_master():
+    while True:
+        try:
+            r = requests.post(os.path.join(MASTER_NODE, f"datanode?port={PORT}"))
+        except:
+            app.logger.error(f"Could not connect to Master Node - {MASTER_NODE}")
+        time.sleep(30)
+
+
 if __name__ == "__main__":
     create_log(app, "data_node", debug=DEBUG)
     init_node()
+    ping_thread = threading.Thread(target=ping_master)
+    ping_thread.start()
+    ping_thread.join()
