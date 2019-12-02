@@ -32,3 +32,12 @@ We are using REST API for connection, here is some examples of messages:
 
 #### Rename file
 `PUT <master_address_and_port>/file?filename=<files_absolute_path>&destination=<new_absolute_path>` – it changes file's information inside master, while id stays same and no update on datanode needed.
+
+### Problems we faced/solved
+**1. Structure of filesystem.**
+
+We struggled a lot on how and where to store filesystem tree information. Finally, we stopped on an idea to store filesystem tree in a Master Node database and store physically files on Data Nodes just under their unique IDs. Mapping of file name to ID is stored on a Master Node.
+
+**2. How to synchronize Master Node and Data Nodes?**
+
+Firstly, both Master Node and Data Nodes pinged each other asking for different information. But then we found that Data Nodes do not need to ping Master. Master can periodically ask Data Nodes to check that they have all tracked files, ask if they received any new untracked files, etc. If Data Nodes do not have something they should or do not respond they are dropped.
