@@ -61,8 +61,8 @@ class FileSystem:
         else:
             self._id += 1
             new_file = File(filename, self._id, [], {
-                "created_at": time.time(),
-                "last_accessed": time.time(),
+                "created_at": time.ctime(),
+                "last_accessed": time.ctime(),
                 "size": 0})
             self._file_mapper[filename] = new_file
             self._file_id_mapper[new_file.id] = new_file
@@ -151,7 +151,7 @@ class FileSystem:
             self._id += 1
             self._file_mapper[new_file_name] = copy.deepcopy(self.get_file(file_name))
             self._file_mapper[new_file_name].id = self._id
-            self._file_mapper[new_file_name].file_info["created_at"] = time.time()
+            self._file_mapper[new_file_name].file_info["created_at"] = time.ctime()
             self._file_mapper[new_file_name].name = new_file_name
             self._file_id_mapper[self._id] = self._file_mapper[new_file_name]
         else:

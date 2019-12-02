@@ -12,7 +12,13 @@ def pretty_print(data):
     try:
         data = json.loads(data)
         for d in data:
-            # Directories are stored just as list, not dictionary, hence can not be parsed in a usual way
+            if type(data[d]) is list:
+                for file in data[d]:
+                    if "file_info" in file:
+                        file["file_info"]["size"] = f"{file['file_info']['size'] / 1024 / 1024:.3f} MB"
+            else:
+                if "file_info" in data[d]:
+                    data[d]["file_info"]["size"] = f"{data[d]['file_info']['size'] / 1024 / 1024:.3f} MB"
             try:
                 json_data = json_normalize(data[d])
                 if not json_data.empty:

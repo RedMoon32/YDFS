@@ -12,7 +12,7 @@ from master_utils import app, create_log, data_nodes, request_datanode, choose_d
 
 DEBUG = False
 PORT = 3030
-MAX_DATANODE_CAPACITY = 5 * 1024 * 1024  # max available memory on each Data Node
+MAX_DATANODE_CAPACITY = 5 * 1024 * 1024 * 1024  # max available memory on each Data Node
 free_memory = 0  # free storage memory in bytes
 
 
@@ -25,7 +25,7 @@ def ping():
 def status():
     app.logger.info(f"Sent filesystem data to a client")
     return jsonify({
-        "Free Space": f"{free_memory}B",
+        "Free Space": f"{free_memory / 1024 / 1024:.3f} MB",
         "Master Node Address": f"{request.remote_addr}:{PORT}",
         "Available Data Nodes": [node.serialize() for node in data_nodes]
     })
@@ -51,7 +51,7 @@ def filesystem():
             request_datanode(d, "filesystem", request.method)
         if len(data_nodes) > 0:
             message = f"Storage is initialized and ready, available disk space is " \
-                      f"{MAX_DATANODE_CAPACITY * len(data_nodes)}B."
+                      f"{MAX_DATANODE_CAPACITY * len(data_nodes) / 1024 / 1024:.3f} MB."
             app.logger.info(message)
             return Response(message, 200)
         else:
@@ -70,7 +70,7 @@ def file():
             return Response(f"file '{filename}' not found", status=404)
         else:
             app.logger.info(f"Sent the file '{filename}' data to a client")
-            file.file_info["last_accessed"] = time.time()
+            file.file_info["last_accessed"] = time.ctime()
             return jsonify({"file": file.serialize()})
 
     elif request.method == "POST":
