@@ -1,7 +1,6 @@
 version: '2'
 services:
     web:
-        network_mode: host
         build: .
         ports:
             - "3030:3030"

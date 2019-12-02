@@ -2,8 +2,8 @@ import os
 
 from client.client_utils import *
 
-# MASTER_NODE = "http://3.136.85.243:3030/"
-MASTER_NODE = "http://localhost:3030/"
+MASTER_NODE = "http://3.136.85.243:3030/"
+
 
 def show_help(*unused):
     """Print out commands' description"""
