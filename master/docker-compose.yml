@@ -5,5 +5,3 @@ services:
         build: .
         ports:
             - "3030:3030"
-        volumes:
-            - .:/app

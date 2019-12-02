@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from master_node import app as master_node_app
 import master_node
 
-from file_system import FileSystem, File, DataNode
+from file_system import File, DataNode
 
 
 @pytest.fixture

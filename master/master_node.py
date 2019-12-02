@@ -195,15 +195,17 @@ def ping_data_nodes():
 
 
 def replication_check():
-    time.sleep(6)
+
     while True:
         for file in fs.get_all_files():
-            if len(file.nodes) < REPLICATION_FACTOR:
+            if len(file.nodes) < REPLICATION_FACTOR and REPLICATION_FACTOR <= len(data_nodes):
                 nodes = choose_datanodes_for_replication(file.nodes)
                 for i in range(len(nodes)):
                     target_node, source_node = nodes[i], file.nodes[i % len(file.nodes)]
                     source_address = f"{source_node.ip}:{source_node.port}"
-                    request_datanode(target_node, f"?sourcenode={source_address}&filename={file.id}", "PUT")
+                    resp = request_datanode(target_node, f"?sourcenode={source_address}&filename={file.id}", "PUT")
+                    if resp is not None:
+                        app.logger.info(f"File {file.name} has been replicated to {target_node.ip}:{target_node.port}")
         time.sleep(5)
 
 

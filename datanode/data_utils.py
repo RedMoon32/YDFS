@@ -50,7 +50,7 @@ def init_node():
     if not os.path.exists(FILE_STORE):
         os.mkdir(FILE_STORE)
     try:
-        requests.post(os.path.join(MASTER_NODE, "datanode?port=2020"))
+        requests.post(os.path.join(MASTER_NODE, f"datanode?port={PORT}"))
     except:
         app.logger.error(f"Could not connect to Master Node - {MASTER_NODE}")
         sys.exit(-1)

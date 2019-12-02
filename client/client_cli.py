@@ -1,6 +1,6 @@
 import os
 
-from client.client_utils import *
+from client_utils import *
 
 MASTER_NODE = "http://localhost:3030/"
 

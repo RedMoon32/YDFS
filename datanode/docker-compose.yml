@@ -5,7 +5,5 @@ services:
         build: .
         ports:
             - "2020:2020"
-        volumes:
-            - .:/app
         environment:
             - MASTER_NODE=http://localhost:3030
