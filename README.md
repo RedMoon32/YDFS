@@ -6,6 +6,20 @@ Yet Another Distributed File System
 * **Bogdan Fedotov** – most of client code and logging
 * **Vasily Varenov** – replication code, readme, presentation
 
+### How to run it
+#### Client
+```
+cd client
+pip install -r requirements.txt
+python client
+```
+#### Master and datanode
+You can run it in the same way, as client, but also you can use docker:
+```
+cd datanode
+docker-compose up
+```
+
 ### Architecture diagram
 
 ![Architecture diagram](https://i.imgur.com/EtBskqu.png)
