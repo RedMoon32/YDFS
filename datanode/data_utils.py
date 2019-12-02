@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import threading
 from logging.handlers import RotatingFileHandler
 
 import requests
@@ -11,15 +12,6 @@ DEBUG = False
 PORT = 2020
 FILE_STORE = "./data"
 MASTER_NODE = os.getenv("MASTER_NODE", "http://localhost:3030")
-
-
-@app.errorhandler(Exception)
-def handle_exception(e):
-    status_code = 400
-    if isinstance(e, FileNotFoundError):
-        status_code = 404
-
-    return Response(str(e), status=status_code)
 
 
 def create_log(app, node_name, debug=False):
@@ -46,6 +38,16 @@ def create_log(app, node_name, debug=False):
     app.logger.info(f"{node_name} startup")
 
 
+def ping_master():
+    import time
+    while True:
+        try:
+            r = requests.post(os.path.join(MASTER_NODE, f"datanode?port={PORT}"))
+        except:
+            app.logger.error(f"Could not connect to Master Node - {MASTER_NODE}")
+        time.sleep(5)
+
+
 def init_node():
     if not os.path.exists(FILE_STORE):
         os.mkdir(FILE_STORE)
@@ -54,4 +56,6 @@ def init_node():
     except:
         app.logger.error(f"Could not connect to Master Node - {MASTER_NODE}")
         sys.exit(-1)
+    ping_thread = threading.Thread(target=ping_master)
+    ping_thread.start()
     app.run(host="0.0.0.0", port=PORT, debug=DEBUG)

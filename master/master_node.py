@@ -165,7 +165,6 @@ def directory():
 
 
 def ping_data_nodes():
-    time.sleep(5)
     while True:
 
         total_occupied = 0
@@ -214,7 +213,7 @@ def ping_data_nodes():
 
         global free_memory
         free_memory = len(data_nodes) * MAX_DATANODE_CAPACITY - total_occupied
-        time.sleep(5)
+        time.sleep(1)
 
 
 def replication_check():
@@ -236,7 +235,7 @@ def replication_check():
                         app.logger.info(
                             f"File {file.name} has been replicated to {target_node.ip}:{target_node.port}"
                         )
-        time.sleep(5)
+        time.sleep(1)
 
 
 if __name__ == "__main__":
