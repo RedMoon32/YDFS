@@ -33,7 +33,7 @@ We are using REST API for connection, here is some examples of messages:
 #### Rename file
 `PUT <master_address_and_port>/file?filename=<files_absolute_path>&destination=<new_absolute_path>` – it changes file's information inside master, while id stays same and no update on datanode needed.
 
-### Problems we faced/solved
+### Problems we faced and solved
 **1. Structure of filesystem.**
 
 We struggled a lot on how and where to store filesystem tree information. Finally, we stopped on an idea to store filesystem tree in a Master Node database and store physically files on Data Nodes just under their unique IDs. Mapping of file name to ID is stored on a Master Node.
