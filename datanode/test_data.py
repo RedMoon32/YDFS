@@ -3,7 +3,7 @@ import pytest
 import os
 
 from shutil import rmtree
-from datanode.data_node import app as data_node, FILE_STORE
+from data_node import app as data_node, FILE_STORE
 
 
 @pytest.fixture
@@ -27,7 +27,6 @@ def test_filesystem_delete(client):
 
     os.mkdir(os.path.join(FILE_STORE, "test"))
     assert len(os.listdir(FILE_STORE)) == 1
-    client.delete("filesystem")
     assert os.path.exists(FILE_STORE)
     assert len(os.listdir(FILE_STORE)) == 0
 

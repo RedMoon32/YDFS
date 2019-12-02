@@ -16,13 +16,14 @@ def client():
 
 
 def clean():
-    master_node.fs = FileSystem()
-    master_node.data_nodes = []
-    master_node.fs._file_mapper = {}
-    master_node.fs._file_id_maper = {}
+    master_node.fs.__init__()
+    master_node.data_nodes.clear()
+    master_node.fs._file_mapper.clear()
+    master_node.fs._file_id_mapper.clear()
 
 
 def test_register_datanode(client):
+
     resp = client.post("/datanode?port=2000")
     assert resp.status_code == 201
 
@@ -33,8 +34,7 @@ def test_register_datanode(client):
 
 
 def test_file_location_to_store(client):
-    master_node.data_nodes = [DataNode("101.101.101.101", 2000)]
-
+    master_node.data_nodes.append(DataNode("101.101.101.101", 2000))
     resp = client.post("/file?filename=a.txt")
     assert resp.json["datanodes"] == [{"ip": "101.101.101.101", "port": 2000}]
     assert "a.txt" in master_node.fs._file_mapper
@@ -124,18 +124,18 @@ def test_file_move(client):
     master_node.fs.add_file("a.txt")
     master_node.fs._dirs.append("/b")
 
-    resp = client.put("/file?operation=mv&filename=a.txt&destination=/b")
+    resp = client.put("/file?filename=a.txt&destination=/b")
     assert resp.status_code == 200
     assert master_node.fs.get_file("a.txt") is None
     assert master_node.fs.get_file("/b/a.txt") is not None
 
-    resp = client.put("/file?operation=mv&filename=/b/a.txt&destination=/b/c")
+    resp = client.put("/file?filename=/b/a.txt&destination=/b/c")
     assert resp.status_code == 404
 
     master_node.fs._dirs.append("/c")
     master_node.fs.add_file("/c/a.txt")
 
-    resp = client.put("/file?operation=mv&filename=/b/a.txt&destination=/c")
+    resp = client.put("/file?filename=/b/a.txt&destination=/c")
     assert resp.status_code == 400
 
 

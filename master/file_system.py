@@ -60,7 +60,10 @@ class FileSystem:
             raise FileExistsError(f"already exists the directory named '{filename}', forgot to specify a filename?")
         else:
             self._id += 1
-            new_file = File(filename, self._id, [], {"created_at": time.time()})
+            new_file = File(filename, self._id, [], {
+                "created_at": time.time(),
+                "last_accessed": time.time(),
+                "size": 0})
             self._file_mapper[filename] = new_file
             self._file_id_mapper[new_file.id] = new_file
             return new_file

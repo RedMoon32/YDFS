@@ -7,7 +7,6 @@ from random import choices
 import requests
 from flask import Flask, Response
 
-from master_node import REPLICATION_FACTOR
 from file_system import FileSystem
 
 app = Flask(__name__)
@@ -15,6 +14,7 @@ fs = FileSystem()
 data_nodes = []
 MAX_REQUEST_COUNT = 3
 LOAD_FACTOR = 0.5  # fraction of datanodes to provide to a client at once
+REPLICATION_FACTOR = 3
 
 
 @app.errorhandler(Exception)

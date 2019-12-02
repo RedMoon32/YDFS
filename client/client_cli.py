@@ -55,7 +55,7 @@ def move_file(*args):
         # Request structure: /file?filename=<name>&destination=<dest>
         resp = requests.put(
             os.path.join(
-                MASTER_NODE, f"file?operation=mv&filename={filename}&destination={destination}"
+                MASTER_NODE, f"file?filename={filename}&destination={destination}"
             )
         )
         check_response(resp, "mv")
