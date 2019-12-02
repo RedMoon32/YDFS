@@ -1,9 +1,9 @@
 import os
 
-from client_utils import *
+from client.client_utils import *
 
+# MASTER_NODE = "http://3.136.85.243:3030/"
 MASTER_NODE = "http://localhost:3030/"
-
 
 def show_help(*unused):
     """Print out commands' description"""
@@ -103,10 +103,11 @@ def put_file(*args):
     :return:
     """
     if check_args("put", args, required_operands=["file", "destination"]):
-        filename = args[1]
-        data = os_read_file(filename)
+        fpath = args[1]
+        data = os_read_file(fpath)
         if data:
-            destination = args[2]
+            destination = make_abs(args[2])
+            filename = os.path.basename(fpath)
             path = join_path(filename, destination)
 
             # Request to store a file in the filesystem
