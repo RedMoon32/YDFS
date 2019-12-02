@@ -4,7 +4,7 @@ import shutil
 import requests
 from flask import request, Response, jsonify
 
-from utils import create_log, app, FILE_STORE, DEBUG, init_node
+from data_utils import create_log, app, FILE_STORE, DEBUG, init_node
 
 
 @app.route("/ping")

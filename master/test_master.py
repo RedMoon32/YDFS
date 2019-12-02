@@ -16,13 +16,14 @@ def client():
 
 
 def clean():
-    master_node.fs = FileSystem()
-    master_node.data_nodes = []
-    master_node.fs._file_mapper = {}
-    master_node.fs._file_id_maper = {}
+    master_node.fs.__init__()
+    master_node.data_nodes.clear()
+    master_node.fs._file_mapper.clear()
+    master_node.fs._file_id_mapper.clear()
 
 
 def test_register_datanode(client):
+
     resp = client.post("/datanode?port=2000")
     assert resp.status_code == 201
 
@@ -33,8 +34,7 @@ def test_register_datanode(client):
 
 
 def test_file_location_to_store(client):
-    master_node.data_nodes = [DataNode("101.101.101.101", 2000)]
-
+    master_node.data_nodes.append(DataNode("101.101.101.101", 2000))
     resp = client.post("/file?filename=a.txt")
     assert resp.json["datanodes"] == [{"ip": "101.101.101.101", "port": 2000}]
     assert "a.txt" in master_node.fs._file_mapper

@@ -7,13 +7,12 @@ from flask import jsonify, Response, request
 from requests.exceptions import ConnectionError
 
 from file_system import File, DataNode
-from utils import app, create_log, data_nodes, request_datanode, choose_datanodes, \
-    choose_datanodes_for_replication, drop_datanode, fs
+from master_utils import app, create_log, data_nodes, request_datanode, choose_datanodes, \
+    choose_datanodes_for_replication, drop_datanode, fs, REPLICATION_FACTOR
 
 DEBUG = False
 PORT = 3030
 MAX_DATANODE_CAPACITY = 5 * 1024 * 1024  # max available memory on each Data Node
-REPLICATION_FACTOR = 3
 free_memory = 0  # free storage memory in bytes
 
 
