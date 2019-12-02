@@ -171,7 +171,9 @@ def read_file(*args):
                     f.write(resp.content)
                     print("Successfully saved")
                 except OSError as e:
-                    print(f"Error while saving on local filesystem: {e.strerror} '{e.filename}'")
+                    print(
+                        f"Error while saving on local filesystem: {e.strerror} '{e.filename}'"
+                    )
 
 
 def remove_file_or_dir(*args):
@@ -184,34 +186,54 @@ def remove_file_or_dir(*args):
         destination = make_abs(args[1])
 
         if get_pwd().startswith(destination):
-            print(f"rm: cannot remove '{destination}': It is a prefix of the current working directory")
+            print(
+                f"rm: cannot remove '{destination}': It is a prefix of the current working directory"
+            )
             return
 
-        dir_resp = requests.get(os.path.join(MASTER_NODE, f"directory?name={destination}"))
-        file_resp = requests.get(os.path.join(MASTER_NODE, f"file?filename={destination}"))
+        dir_resp = requests.get(
+            os.path.join(MASTER_NODE, f"directory?name={destination}")
+        )
+        file_resp = requests.get(
+            os.path.join(MASTER_NODE, f"file?filename={destination}")
+        )
 
         if check_response(file_resp, verbose=False):
-            resp = requests.delete(os.path.join(MASTER_NODE, f"file?filename={destination}"))
+            resp = requests.delete(
+                os.path.join(MASTER_NODE, f"file?filename={destination}")
+            )
             check_response(resp, "rm")
         elif check_response(dir_resp, verbose=False):
             data = dir_resp.json()
-            if len(data["dirs"]) > 0 or len(data["files"]) > 0:  # If destination directory is not empty
+            if (
+                len(data["dirs"]) > 0 or len(data["files"]) > 0
+            ):  # If destination directory is not empty
                 # Prompt for yes/no while not get satisfactory answer
                 while True:
-                    inp = input(f"rm: directory '{destination} is not empty, remove? [y/N]': ").split()
+                    inp = input(
+                        f"rm: directory '{destination} is not empty, remove? [y/N]': "
+                    ).split()
                     if check_args("rm", tuple(inp), optional_operands=["yes/no"]):
-                        if len(inp) == 0 or inp[0].lower() == 'n':  # Consider as decline
+                        if (
+                            len(inp) == 0 or inp[0].lower() == "n"
+                        ):  # Consider as decline
                             break
                         ans = inp[0]
                         if ans.lower() == "y":  # Consider as accept
-                            resp = requests.delete(os.path.join(MASTER_NODE, f"directory?name={destination}"))
+                            resp = requests.delete(
+                                os.path.join(
+                                    MASTER_NODE, f"directory?name={destination}"
+                                )
+                            )
                             check_response(resp, "rm")
                             break
                         else:
                             print("Incorrect input")
                             continue
             else:
-                resp = requests.delete(os.path.join(MASTER_NODE, f"directory?name={destination}"))
+                resp = requests.delete(
+                    os.path.join(MASTER_NODE, f"directory?name={destination}")
+                )
                 check_response(resp, "rm")
         else:
             print(f"rm: cannot remove '{destination}': No such file or directory")
@@ -231,7 +253,9 @@ def list_dir(*args):
 
         resp = requests.get(os.path.join(MASTER_NODE, f"directory?name={destination}"))
         if not check_response(resp, "ls", pretty_print_enabled=True):
-            resp = requests.get(os.path.join(MASTER_NODE, f"file?filename={destination}"))
+            resp = requests.get(
+                os.path.join(MASTER_NODE, f"file?filename={destination}")
+            )
             if not check_response(resp, "ls", pretty_print_enabled=True):
                 print(f"ls: cannot access '{destination}': No such file or directory")
 

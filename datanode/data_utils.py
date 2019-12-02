@@ -34,7 +34,7 @@ def create_log(app, node_name, debug=False):
             "%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]"
         )
     )
-    log = logging.getLogger('werkzeug')
+    log = logging.getLogger("werkzeug")
     log.setLevel(logging.ERROR)
     if debug:
         app.logger.setLevel(logging.DEBUG)

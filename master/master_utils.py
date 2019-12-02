@@ -64,7 +64,10 @@ def choose_datanodes():
 
 
 def choose_datanodes_for_replication(nodes_with_file):
-    return choices([x for x in data_nodes if x not in nodes_with_file], k=REPLICATION_FACTOR - len(nodes_with_file))
+    return choices(
+        [x for x in data_nodes if x not in nodes_with_file],
+        k=REPLICATION_FACTOR - len(nodes_with_file),
+    )
 
 
 def create_log(app, node_name, debug=False):
@@ -79,7 +82,7 @@ def create_log(app, node_name, debug=False):
             "%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]"
         )
     )
-    log = logging.getLogger('werkzeug')
+    log = logging.getLogger("werkzeug")
     log.setLevel(logging.ERROR)
     if debug:
         app.logger.setLevel(logging.DEBUG)

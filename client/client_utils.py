@@ -15,10 +15,14 @@ def pretty_print(data):
             if type(data[d]) is list:
                 for file in data[d]:
                     if "file_info" in file:
-                        file["file_info"]["size"] = f"{file['file_info']['size'] / 1024 / 1024:.3f} MB"
+                        file["file_info"][
+                            "size"
+                        ] = f"{file['file_info']['size'] / 1024 / 1024:.3f} MB"
             else:
                 if "file_info" in data[d]:
-                    data[d]["file_info"]["size"] = f"{data[d]['file_info']['size'] / 1024 / 1024:.3f} MB"
+                    data[d]["file_info"][
+                        "size"
+                    ] = f"{data[d]['file_info']['size'] / 1024 / 1024:.3f} MB"
             try:
                 json_data = json_normalize(data[d])
                 if not json_data.empty:
@@ -32,7 +36,13 @@ def pretty_print(data):
         print("Response JSON parse error")
 
 
-def check_response(resp, command: str = "Error", pretty_print_enabled=False, print_content=True, verbose=True):
+def check_response(
+    resp,
+    command: str = "Error",
+    pretty_print_enabled=False,
+    print_content=True,
+    verbose=True,
+):
     """
     Check that response is ok and print a result to user
     :param print_content: flag that enables content print to console
@@ -56,7 +66,9 @@ def check_response(resp, command: str = "Error", pretty_print_enabled=False, pri
         return False
 
 
-def check_args(command: str, args: tuple, required_operands=None, optional_operands=None):
+def check_args(
+    command: str, args: tuple, required_operands=None, optional_operands=None
+):
     """
     Check that number of arguments is correct.
     :param command: CLI command to check. Used for user prompt.

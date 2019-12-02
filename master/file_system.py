@@ -32,9 +32,9 @@ class File:
 
     def __eq__(self, other):
         return (
-                self.name == other.name
-                and self.id == other.id
-                and self.file_info == other.file_info
+            self.name == other.name
+            and self.id == other.id
+            and self.file_info == other.file_info
         )
 
     def __hash__(self):
@@ -55,15 +55,21 @@ class FileSystem:
         if filename in self._file_mapper:
             raise FileExistsError(f"file '{filename}' already exists")
         if not self.dir_exists(os.path.dirname(filename)):
-            raise FileNotFoundError(f"directory '{os.path.dirname(filename)}' not found")
+            raise FileNotFoundError(
+                f"directory '{os.path.dirname(filename)}' not found"
+            )
         if self.dir_exists(filename):
-            raise FileExistsError(f"already exists the directory named '{filename}', forgot to specify a filename?")
+            raise FileExistsError(
+                f"already exists the directory named '{filename}', forgot to specify a filename?"
+            )
         else:
             self._id += 1
-            new_file = File(filename, self._id, [], {
-                "created_at": time.ctime(),
-                "last_accessed": time.ctime(),
-                "size": 0})
+            new_file = File(
+                filename,
+                self._id,
+                [],
+                {"created_at": time.ctime(), "last_accessed": time.ctime(), "size": 0},
+            )
             self._file_mapper[filename] = new_file
             self._file_id_mapper[new_file.id] = new_file
             return new_file
@@ -142,7 +148,9 @@ class FileSystem:
             raise FileNotFoundError(f"directory '{destination}' not found")
 
         if self.dir_exists(new_file_name):
-            raise FileExistsError(f"already exists the directory named '{new_file_name}', forgot to specify a filename?")
+            raise FileExistsError(
+                f"already exists the directory named '{new_file_name}', forgot to specify a filename?"
+            )
 
         if self.get_file(new_file_name):
             raise FileExistsError(f"file '{new_file_name}' already exists")

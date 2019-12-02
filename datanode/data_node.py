@@ -36,10 +36,15 @@ def filesystem():
                     f"Deleting File with fid={fid} as file not found on master"
                 )
         app.logger.debug("Sent storage data to a Master Node")
-        return jsonify({
-            "files": [int(fid) for fid in os.listdir(FILE_STORE)],
-            "file_sizes": [os.path.getsize(os.path.join(FILE_STORE, fid)) for fid in os.listdir(FILE_STORE)]
-        })
+        return jsonify(
+            {
+                "files": [int(fid) for fid in os.listdir(FILE_STORE)],
+                "file_sizes": [
+                    os.path.getsize(os.path.join(FILE_STORE, fid))
+                    for fid in os.listdir(FILE_STORE)
+                ],
+            }
+        )
 
 
 @app.route("/file", methods=["GET", "POST", "PUT", "DELETE"])
@@ -63,7 +68,9 @@ def file():
     elif request.method == "POST":
         try:
             if os.path.exists(fpath):
-                app.logger.info(f"File '{fpath}' was requested to save but file already exists")
+                app.logger.info(
+                    f"File '{fpath}' was requested to save but file already exists"
+                )
                 return Response(f"file '{fpath}' already exists", 400)
             f = open(fpath, "wb")
             f.write(request.data)
@@ -81,11 +88,13 @@ def file():
     elif request.method == "PUT":
         try:
             target = filename
-            if '/' in target:
-                return Response('/ are not allowed in file name!', 400)
+            if "/" in target:
+                return Response("/ are not allowed in file name!", 400)
             target_path = os.path.join(FILE_STORE, target)
             if os.path.exists(target_path):
-                app.logger.info(f"File '{fpath}' was requested to copy but target file '{target_path}' already exists")
+                app.logger.info(
+                    f"File '{fpath}' was requested to copy but target file '{target_path}' already exists"
+                )
                 return Response(f"File already exists", 400)
 
             source_node = request.args["source_node"]
@@ -98,17 +107,28 @@ def file():
                     app.logger.info(f"Could not save replication of a file {fpath}")
                     return Response("Error while saving on local filesystem", 400)
             else:
-                app.logger.info("Error with requesting file from source_node, it returned: " + resp.status_code)
-                return Response("Error with requesting file from source_node, it returned: " + resp.status_code, 400)
+                app.logger.info(
+                    "Error with requesting file from source_node, it returned: "
+                    + resp.status_code
+                )
+                return Response(
+                    "Error with requesting file from source_node, it returned: "
+                    + resp.status_code,
+                    400,
+                )
 
-            app.logger.info(f"File '{fpath}' was replicated from source node '{source_node}'")
+            app.logger.info(
+                f"File '{fpath}' was replicated from source node '{source_node}'"
+            )
             return Response(status=201)
         except Exception as e:
             return Response(f"Error during something ", 400)
 
     elif request.method == "DELETE":
         if not os.path.exists(fpath):
-            app.logger.info(f"File '{fpath}' was requested for deletion but file not found")
+            app.logger.info(
+                f"File '{fpath}' was requested for deletion but file not found"
+            )
             return Response(f"file not '{fpath}' found", 404)
         else:
             os.remove(fpath)

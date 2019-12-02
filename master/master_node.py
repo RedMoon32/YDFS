@@ -7,8 +7,17 @@ from flask import jsonify, Response, request
 from requests.exceptions import ConnectionError
 
 from file_system import File, DataNode
-from master_utils import app, create_log, data_nodes, request_datanode, choose_datanodes, \
-    choose_datanodes_for_replication, drop_datanode, fs, REPLICATION_FACTOR
+from master_utils import (
+    app,
+    create_log,
+    data_nodes,
+    request_datanode,
+    choose_datanodes,
+    choose_datanodes_for_replication,
+    drop_datanode,
+    fs,
+    REPLICATION_FACTOR,
+)
 
 DEBUG = False
 PORT = 3030
@@ -24,11 +33,13 @@ def ping():
 @app.route("/status")
 def status():
     app.logger.info(f"Sent filesystem data to a client")
-    return jsonify({
-        "Free Space": f"{free_memory / 1024 / 1024:.3f} MB",
-        "Master Node Address": f"{request.remote_addr}:{PORT}",
-        "Available Data Nodes": [node.serialize() for node in data_nodes]
-    })
+    return jsonify(
+        {
+            "Free Space": f"{free_memory / 1024 / 1024:.3f} MB",
+            "Master Node Address": f"{request.remote_addr}:{PORT}",
+            "Available Data Nodes": [node.serialize() for node in data_nodes],
+        }
+    )
 
 
 @app.route("/datanode", methods=["POST"])
@@ -50,8 +61,10 @@ def filesystem():
         for d in data_nodes:
             request_datanode(d, "filesystem", request.method)
         if len(data_nodes) > 0:
-            message = f"Storage is initialized and ready, available disk space is " \
-                      f"{MAX_DATANODE_CAPACITY * len(data_nodes) / 1024 / 1024:.3f} MB."
+            message = (
+                f"Storage is initialized and ready, available disk space is "
+                f"{MAX_DATANODE_CAPACITY * len(data_nodes) / 1024 / 1024:.3f} MB."
+            )
             app.logger.info(message)
             return Response(message, 200)
         else:
@@ -86,7 +99,9 @@ def file():
 
     elif request.method == "DELETE":
         if not file:
-            app.logger.info(f"File '{filename}' was requested to delete but file not found")
+            app.logger.info(
+                f"File '{filename}' was requested to delete but file not found"
+            )
             return Response(f"file '{filename}' not found", status=404)
         else:
             for dnode in file.nodes:
@@ -113,7 +128,9 @@ def directory():
 
     elif request.method == "GET":
         if not fs.dir_exists(dirname):
-            app.logger.info(f"Directory '{dirname}' data was requested but it does not exist")
+            app.logger.info(
+                f"Directory '{dirname}' data was requested but it does not exist"
+            )
             return Response(f"directory '{dirname}' does not exist", 404)
         app.logger.info(f"Sent the directory '{dirname}' data to a client")
         return jsonify(
@@ -124,17 +141,23 @@ def directory():
         )
     elif request.method == "DELETE":
         if not fs.dir_exists(dirname):
-            app.logger.info(f"Directory '{dirname}' was requested to delete but it does not exist")
+            app.logger.info(
+                f"Directory '{dirname}' was requested to delete but it does not exist"
+            )
             return Response(f"directory '{dirname}' does not exist", 404)
-        if dirname == '/':
-            app.logger.info(f"Directory '{dirname}' was requested to delete but root directory cannot be deleted")
+        if dirname == "/":
+            app.logger.info(
+                f"Directory '{dirname}' was requested to delete but root directory cannot be deleted"
+            )
             return Response("cannot remove root directory", 400)
         rm_list = fs.remove_dir(dirname)
         for file in rm_list:
             for dnode in file.nodes:
                 request_datanode(dnode, f"file?filename={file.id}", "DELETE")
             fs.remove_file(file.name)
-        app.logger.info(f"Directory '{dirname}' and all its sub-folders and files were deleted")
+        app.logger.info(
+            f"Directory '{dirname}' and all its sub-folders and files were deleted"
+        )
         return Response(
             f"directory '{dirname}' and all its sub-folders and files were deleted",
             status=200,
@@ -195,17 +218,24 @@ def ping_data_nodes():
 
 
 def replication_check():
-
     while True:
         for file in fs.get_all_files():
-            if len(file.nodes) < REPLICATION_FACTOR and REPLICATION_FACTOR <= len(data_nodes):
+            if len(file.nodes) < REPLICATION_FACTOR and REPLICATION_FACTOR <= len(
+                data_nodes
+            ):
                 nodes = choose_datanodes_for_replication(file.nodes)
                 for i in range(len(nodes)):
                     target_node, source_node = nodes[i], file.nodes[i % len(file.nodes)]
                     source_address = f"{source_node.ip}:{source_node.port}"
-                    resp = request_datanode(target_node, f"?sourcenode={source_address}&filename={file.id}", "PUT")
-                    if resp is not None:
-                        app.logger.info(f"File {file.name} has been replicated to {target_node.ip}:{target_node.port}")
+                    resp = request_datanode(
+                        target_node,
+                        f"?sourcenode={source_address}&filename={file.id}",
+                        "PUT",
+                    )
+                    if resp is not None and resp.status_code // 200 == 1:
+                        app.logger.info(
+                            f"File {file.name} has been replicated to {target_node.ip}:{target_node.port}"
+                        )
         time.sleep(5)
 
 
