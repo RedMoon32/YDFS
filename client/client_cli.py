@@ -2,7 +2,7 @@ import os
 
 from client.client_utils import *
 
-MASTER_NODE = "http://3.136.85.243:3030/"
+MASTER_NODE = os.getenv("MASTER_NODE", "http://localhost:3030/")
 
 
 def show_help(*unused):
@@ -207,7 +207,7 @@ def remove_file_or_dir(*args):
         elif check_response(dir_resp, verbose=False):
             data = dir_resp.json()
             if (
-                len(data["dirs"]) > 0 or len(data["files"]) > 0
+                    len(data["dirs"]) > 0 or len(data["files"]) > 0
             ):  # If destination directory is not empty
                 # Prompt for yes/no while not get satisfactory answer
                 while True:
@@ -216,7 +216,7 @@ def remove_file_or_dir(*args):
                     ).split()
                     if check_args("rm", tuple(inp), optional_operands=["yes/no"]):
                         if (
-                            len(inp) == 0 or inp[0].lower() == "n"
+                                len(inp) == 0 or inp[0].lower() == "n"
                         ):  # Consider as decline
                             break
                         ans = inp[0]
