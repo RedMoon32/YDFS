@@ -2,7 +2,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 from math import ceil
-from random import choices
+from random import choices, sample
 
 import requests
 from flask import Flask, Response
@@ -65,13 +65,15 @@ def drop_datanode(datanode):
 def choose_datanodes():
     k = ceil(len(data_nodes) * LOAD_FACTOR)  # how much data_nodes to choose
     # Serialize each randomly chosen datanode and return a list of such datanodes
-    return list(map(lambda node: node.serialize(), choices(data_nodes, k=k)))
+    return list(map(lambda node: node.serialize(), sample(data_nodes, k=min(k, len(data_nodes)))))
 
 
 def choose_datanodes_for_replication(nodes_with_file):
-    return choices(
-        [x for x in data_nodes if x not in nodes_with_file],
-        k=REPLICATION_FACTOR - len(nodes_with_file),
+    free_nodes = [x for x in data_nodes if x not in nodes_with_file]
+
+    return sample(
+        free_nodes,
+        k=min(len(free_nodes), REPLICATION_FACTOR - len(nodes_with_file))
     )
 
 
