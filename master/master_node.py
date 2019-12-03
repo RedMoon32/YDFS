@@ -180,7 +180,7 @@ def ping_data_nodes():
                 )
                 app.logger.debug(f"Success - datanode {node_address} is alive")
                 data_file_ids = resp.json()["files"]
-
+                app.logger.info(f"Datanode {node_address} files: {data_file_ids}")
                 file_sizes = resp.json()["file_sizes"]
                 total_occupied += sum(file_sizes)
 
@@ -220,9 +220,9 @@ def replication_check():
     while True:
         for file in fs.get_all_files():
             if (
-                len(file.nodes) > 0
-                and len(file.nodes) < REPLICATION_FACTOR
-                and REPLICATION_FACTOR <= len(data_nodes)
+                    len(file.nodes) > 0
+                    and len(file.nodes) < REPLICATION_FACTOR
+                    and REPLICATION_FACTOR <= len(data_nodes)
             ):
                 nodes = choose_datanodes_for_replication(file.nodes)
                 for i in range(len(nodes)):

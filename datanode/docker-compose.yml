@@ -8,5 +8,3 @@ services:
         environment:
             - MASTER_NODE=http://localhost:3030
             - PORT_D=2020
-        volumes:
-            - .:/app

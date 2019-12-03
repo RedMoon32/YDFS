@@ -20,7 +20,7 @@ def pretty_print(data):
                             "size"
                         ] = f"{max(0.001, file['file_info']['size'] / 1024 / 1024):.3f} MB"
                     if "nodes" in file:
-                        file.pop("nodes")
+                        file["nodes"] = len(file["nodes"])
             else:
                 if "file_info" in data[d]:
                     data[d]["file_info"][

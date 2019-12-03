@@ -8,7 +8,6 @@ from flask import request, Response, jsonify
 
 from data_utils import create_log, app, FILE_STORE, DEBUG, init_node
 
-lock = threading.Lock()
 
 
 @app.route("/ping")
@@ -18,8 +17,6 @@ def ping():
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    if lock.locked():
-        lock.release()
     status_code = 400
     if isinstance(e, FileNotFoundError):
         status_code = 404
@@ -33,23 +30,18 @@ def handle_exception(e):
 def filesystem():
     if request.method == "DELETE":
         try:
-            lock.acquire()
             # remove the storage dir with all its contents and create it anew
             shutil.rmtree(FILE_STORE, ignore_errors=True)
             os.mkdir(FILE_STORE)
             app.logger.info("Storage is cleared")
-            lock.release()
             return Response(status=200)
         except Exception as e:
-            if lock.locked():
-                lock.release()
             app.logger.info("Error clearing storage")
             return Response(f"Error clearing storage", 400)
 
     elif request.method == "GET":
         if "files" not in request.json:
             return Response(status=400)
-        lock.acquire()
         file_ids = request.json["files"]
         for fid in os.listdir(FILE_STORE):
             if int(fid) not in file_ids:
@@ -58,7 +50,6 @@ def filesystem():
                     f"Deleting File with fid={fid} as file not found on master"
                 )
         app.logger.debug("Sent storage data to a Master Node")
-        lock.release()
         return jsonify(
             {
                 "files": [int(fid) for fid in os.listdir(FILE_STORE)],
