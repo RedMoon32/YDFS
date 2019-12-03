@@ -19,7 +19,7 @@ from master_utils import (
     REPLICATION_FACTOR,
 )
 
-DEBUG = False
+DEBUG = True if os.getenv("DEBUG", "false") == "true" else False
 PORT = 3030
 MAX_DATANODE_CAPACITY = 5 * 1024 * 1024 * 1024  # max available memory on each Data Node
 free_memory = 0  # free storage memory in bytes
@@ -219,8 +219,10 @@ def ping_data_nodes():
 def replication_check():
     while True:
         for file in fs.get_all_files():
-            if len(file.nodes) > 0 and len(file.nodes) < REPLICATION_FACTOR and REPLICATION_FACTOR <= len(
-                    data_nodes
+            if (
+                len(file.nodes) > 0
+                and len(file.nodes) < REPLICATION_FACTOR
+                and REPLICATION_FACTOR <= len(data_nodes)
             ):
                 nodes = choose_datanodes_for_replication(file.nodes)
                 for i in range(len(nodes)):
@@ -228,7 +230,7 @@ def replication_check():
                     source_address = f"{source_node.ip}:{source_node.port}"
                     resp = request_datanode(
                         target_node,
-                        f"?sourcenode={source_address}&filename={file.id}",
+                        f"file?source_node={source_address}&filename={file.id}",
                         "PUT",
                     )
                     if resp is not None and resp.status_code // 200 == 1:

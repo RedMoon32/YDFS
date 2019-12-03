@@ -48,6 +48,7 @@ def request_datanode(datanode, command, method):
 
 def drop_datanode(datanode):
     import random
+
     # remove datanode with probability 0.3
     if not random.uniform(0, 1) < 0.3:
         return

@@ -1,8 +1,12 @@
 version: '2'
 services:
     web:
+        network_mode: host
         build: .
         ports:
-            - "2020:2020"
+            - 2020:2020
         environment:
-            - MASTER_NODE=${MASTER_NODE}
+            - MASTER_NODE=http://localhost:3030
+            - PORT_D=2020
+        volumes:
+            - .:/app

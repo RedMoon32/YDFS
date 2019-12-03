@@ -5,12 +5,12 @@ import threading
 from logging.handlers import RotatingFileHandler
 
 import requests
-from flask import Flask, Response
+from flask import Flask
 
 app = Flask(__name__)
-DEBUG = False
-PORT = 2020
-FILE_STORE = "./data"
+DEBUG = True if os.getenv("DEBUG", "false") == "true" else False
+PORT = int(os.getenv("PORT_D", 2020))
+FILE_STORE = os.getenv("FILE_STORE", "./data")
 MASTER_NODE = os.getenv("MASTER_NODE", "http://localhost:3030")
 
 
@@ -40,6 +40,7 @@ def create_log(app, node_name, debug=False):
 
 def ping_master():
     import time
+
     while True:
         try:
             r = requests.post(os.path.join(MASTER_NODE, f"datanode?port={PORT}"))
@@ -59,3 +60,4 @@ def init_node():
     ping_thread = threading.Thread(target=ping_master)
     ping_thread.start()
     app.run(host="0.0.0.0", port=PORT, debug=DEBUG)
+    ping_thread.join()

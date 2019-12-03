@@ -6,23 +6,26 @@ import time
 import requests
 from flask import request, Response, jsonify
 
-from data_utils import create_log, app, FILE_STORE, DEBUG, init_node, MASTER_NODE, PORT
+from data_utils import create_log, app, FILE_STORE, DEBUG, init_node
 
 lock = threading.Lock()
 
 
 @app.route("/ping")
 def ping():
-    return Response("Master Node is Alive")
+    return Response("Data Node is Alive")
 
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    lock.release()
+    if lock.locked():
+        lock.release()
     status_code = 400
     if isinstance(e, FileNotFoundError):
         status_code = 404
-
+    app.logger.error(
+        "Error during working:" + str(e) + ", request by url:" + str(request.url)
+    )
     return Response(str(e), status=status_code)
 
 
@@ -38,7 +41,8 @@ def filesystem():
             lock.release()
             return Response(status=200)
         except Exception as e:
-            lock.release()
+            if lock.locked():
+                lock.release()
             app.logger.info("Error clearing storage")
             return Response(f"Error clearing storage", 400)
 
@@ -128,11 +132,11 @@ def file():
             else:
                 app.logger.info(
                     "Error with requesting file from source_node, it returned: "
-                    + resp.status_code
+                    + str(resp.status_code)
                 )
                 return Response(
-                    "Error with requesting file from source_node, it returned: "
-                    + resp.status_code,
+                    "Error with requesting file from source_node, it returned: ",
+                    resp.status_code,
                     400,
                 )
 
